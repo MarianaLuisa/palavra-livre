@@ -39,3 +39,7 @@ export const STATUS_PRIORITY: Record<LetterStatus, number> = {
 export const MODE_STORAGE_KEY = "palavra-livre:mode";
 export const STATS_STORAGE_KEY = "palavra-livre:stats";
 export const THEME_STORAGE_KEY = "palavra-livre:theme";
+export const ANSWER_HISTORY_STORAGE_KEY = "palavra-livre:answer-history";
+export const TILE_REVEAL_DELAY_MS = 180;
+export const TILE_REVEAL_DURATION_MS = 520;
+export const REVEAL_TOTAL_MS = TILE_REVEAL_DELAY_MS * (WORD_LENGTH - 1) + TILE_REVEAL_DURATION_MS;

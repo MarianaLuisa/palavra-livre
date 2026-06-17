@@ -73,6 +73,11 @@ button {
   font: inherit;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
 button:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--accent) 65%, white);
   outline-offset: 2px;
@@ -375,6 +380,23 @@ button:focus-visible {
   text-transform: uppercase;
 }
 
+button.tile {
+  padding: 0;
+  appearance: none;
+  cursor: pointer;
+}
+
+.tile.editable:hover {
+  border-color: var(--accent);
+}
+
+.tile.active {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 36%, transparent),
+    0 8px 22px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
 .count-6 .tile {
   width: clamp(2.25rem, 5vw, 2.9rem);
   font-size: clamp(1.15rem, 3vw, 1.65rem);
@@ -408,6 +430,26 @@ button:focus-visible {
   color: #fff;
   background: var(--gray);
   border-color: var(--gray);
+}
+
+.tile.revealing {
+  animation-delay: var(--tile-delay);
+  animation-duration: 520ms;
+  animation-fill-mode: both;
+  animation-timing-function: ease-in-out;
+  transform-style: preserve-3d;
+}
+
+.tile.revealing.correct {
+  animation-name: reveal-correct;
+}
+
+.tile.revealing.present {
+  animation-name: reveal-present;
+}
+
+.tile.revealing.absent {
+  animation-name: reveal-absent;
 }
 
 .keyboard {
@@ -680,6 +722,78 @@ button:focus-visible {
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+@keyframes reveal-correct {
+  0%,
+  48% {
+    transform: rotateX(0deg);
+    color: var(--text);
+    background: var(--surface-soft);
+    border-color: var(--line);
+  }
+
+  50% {
+    transform: rotateX(90deg);
+    color: #fff;
+    background: var(--green);
+    border-color: var(--green);
+  }
+
+  100% {
+    transform: rotateX(0deg);
+    color: #fff;
+    background: var(--green);
+    border-color: var(--green);
+  }
+}
+
+@keyframes reveal-present {
+  0%,
+  48% {
+    transform: rotateX(0deg);
+    color: var(--text);
+    background: var(--surface-soft);
+    border-color: var(--line);
+  }
+
+  50% {
+    transform: rotateX(90deg);
+    color: #fff;
+    background: var(--yellow);
+    border-color: var(--yellow);
+  }
+
+  100% {
+    transform: rotateX(0deg);
+    color: #fff;
+    background: var(--yellow);
+    border-color: var(--yellow);
+  }
+}
+
+@keyframes reveal-absent {
+  0%,
+  48% {
+    transform: rotateX(0deg);
+    color: var(--text);
+    background: var(--surface-soft);
+    border-color: var(--line);
+  }
+
+  50% {
+    transform: rotateX(90deg);
+    color: #fff;
+    background: var(--gray);
+    border-color: var(--gray);
+  }
+
+  100% {
+    transform: rotateX(0deg);
+    color: #fff;
+    background: var(--gray);
+    border-color: var(--gray);
   }
 }
 

@@ -6,9 +6,19 @@ type RowProps = {
   letters: EvaluatedLetter[];
   isCurrent?: boolean;
   isEvaluated?: boolean;
+  isRevealing?: boolean;
+  activeTileIndex?: number;
+  onTileSelect?: (index: number) => void;
 };
 
-export function Row({ letters, isCurrent = false, isEvaluated = false }: RowProps) {
+export function Row({
+  letters,
+  isCurrent = false,
+  isEvaluated = false,
+  isRevealing = false,
+  activeTileIndex = 0,
+  onTileSelect,
+}: RowProps) {
   const completeLetters = Array.from({ length: WORD_LENGTH }, (_, index) => {
     return letters[index] ?? { letter: "", status: "empty" as const };
   });
@@ -27,6 +37,11 @@ export function Row({ letters, isCurrent = false, isEvaluated = false }: RowProp
           key={`${letter.letter}-${index}`}
           letter={letter.letter}
           status={letter.status}
+          index={index}
+          isActive={isCurrent && activeTileIndex === index}
+          isEditable={isCurrent}
+          isRevealing={isRevealing}
+          onSelect={onTileSelect}
         />
       ))}
     </div>

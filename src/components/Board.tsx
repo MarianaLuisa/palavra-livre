@@ -5,18 +5,21 @@ import { Row } from "./Row";
 type BoardProps = {
   board: BoardState;
   boardNumber: number;
-  currentGuess: string;
+  currentGuessLetters: string[];
+  activeTileIndex: number;
   maxAttempts: number;
   gameStatus: GameStatus;
+  isRevealing: boolean;
+  onTileSelect: (index: number) => void;
 };
 
 function createEmptyLetters() {
   return Array.from({ length: WORD_LENGTH }, () => ({ letter: "", status: "empty" as const }));
 }
 
-function createCurrentLetters(currentGuess: string) {
+function createCurrentLetters(currentGuessLetters: string[]) {
   return Array.from({ length: WORD_LENGTH }, (_, index) => ({
-    letter: currentGuess[index] ?? "",
+    letter: currentGuessLetters[index] ?? "",
     status: "empty" as const,
   }));
 }
@@ -24,9 +27,12 @@ function createCurrentLetters(currentGuess: string) {
 export function Board({
   board,
   boardNumber,
-  currentGuess,
+  currentGuessLetters,
+  activeTileIndex,
   maxAttempts,
   gameStatus,
+  isRevealing,
+  onTileSelect,
 }: BoardProps) {
   const showCurrentRow = gameStatus === "playing" && !board.solved;
   const emptyRowsCount = Math.max(
@@ -52,11 +58,21 @@ export function Board({
 
       <div className="board-rows">
         {board.rows.map((row, index) => (
-          <Row key={`evaluated-${index}`} letters={row} isEvaluated />
+          <Row
+            key={`evaluated-${index}`}
+            letters={row}
+            isEvaluated
+            isRevealing={isRevealing && index === board.rows.length - 1}
+          />
         ))}
 
         {showCurrentRow ? (
-          <Row letters={createCurrentLetters(currentGuess)} isCurrent />
+          <Row
+            letters={createCurrentLetters(currentGuessLetters)}
+            isCurrent
+            activeTileIndex={activeTileIndex}
+            onTileSelect={onTileSelect}
+          />
         ) : null}
 
         {Array.from({ length: emptyRowsCount }, (_, index) => (

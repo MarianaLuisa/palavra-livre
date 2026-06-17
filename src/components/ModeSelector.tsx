@@ -3,10 +3,11 @@ import { MODE_CONFIG, MODES } from "../utils/constants";
 
 type ModeSelectorProps = {
   activeMode: GameMode;
+  disabled?: boolean;
   onChangeMode: (mode: GameMode) => void;
 };
 
-export function ModeSelector({ activeMode, onChangeMode }: ModeSelectorProps) {
+export function ModeSelector({ activeMode, disabled = false, onChangeMode }: ModeSelectorProps) {
   return (
     <section className="mode-selector" aria-label="Modos de jogo">
       {MODES.map((mode) => (
@@ -14,6 +15,7 @@ export function ModeSelector({ activeMode, onChangeMode }: ModeSelectorProps) {
           className={mode === activeMode ? "mode-button active" : "mode-button"}
           key={mode}
           type="button"
+          disabled={disabled}
           onClick={() => onChangeMode(mode)}
           aria-pressed={mode === activeMode}
           aria-label={`Modo ${MODE_CONFIG[mode].label}, ${MODE_CONFIG[mode].boardCount} tabuleiro${

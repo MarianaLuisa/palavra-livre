@@ -1,23 +1,37 @@
 # Fonte de palavras
 
-## Fonte recomendada
+## Fontes usadas
 
-A fonte principal recomendada para o Palavra Livre e o repositorio `fserb/pt-br`, que disponibiliza um lexico PT-BR sob licenca MIT.
+A fonte principal recomendada e usada nesta etapa foi o repositorio `fserb/pt-br`, disponivel no GitHub sob licenca MIT:
 
-Essa fonte e uma boa base para gerar uma lista ampla de palavras aceitas como tentativas. Mesmo assim, a lista de respostas deve passar por curadoria manual.
+- https://github.com/fserb/pt-br
+
+Como complemento opcional, tambem foi usada a lista do repositorio `pythonprobr/palavras`:
+
+- https://github.com/pythonprobr/palavras
+
+O jogo nao acessa essas fontes em runtime. Elas sao usadas apenas em tempo de preparacao para gerar arquivos JSON locais.
 
 ## Arquivos gerados
 
-- `src/data/validWords.json`: lista maior, usada para validar tentativas digitadas pelo jogador.
-- `src/data/answers.json`: lista menor, usada para sortear as palavras secretas.
+- `src/data/validWords.json`: lista grande de palavras aceitas como tentativas.
+- `src/data/answers.json`: lista menor, usada para sortear respostas.
 
-Separar essas listas melhora a experiencia: o jogador pode tentar palavras menos comuns, mas o jogo sorteia respostas mais familiares.
+Separar essas listas melhora a experiencia: o jogador pode tentar palavras menos comuns, mas as respostas sorteadas tendem a ser mais reconheciveis.
 
-## Como gerar
+## Curadoria
 
-1. Baixe ou copie a lista bruta de palavras para `palavras-originais.txt`, na raiz do projeto.
-2. Coloque termos proibidos em `scripts/blocklist.txt`, um por linha.
-3. Opcionalmente, coloque respostas boas em `scripts/answers-curadas.txt`, uma por linha.
+Nem toda palavra valida deve ser resposta. Respostas precisam de curadoria porque listas lexicais incluem termos raros, nomes proprios, siglas, flexoes pouco naturais e palavras inadequadas para um jogo publico.
+
+O script usa `scripts/answers-curadas.txt` como prioridade. Depois ele completa a lista de respostas com palavras filtradas por frequencia quando a fonte `fserb/pt-br` inclui arquivo ICF.
+
+Tambem existe `scripts/blocklist.txt`, aplicado tanto a `validWords.json` quanto a `answers.json`.
+
+## Como atualizar
+
+1. Baixe ou copie fontes para `word-sources/`.
+2. Mantenha `scripts/blocklist.txt` atualizado.
+3. Ajuste `scripts/answers-curadas.txt` com respostas boas, se quiser priorizar termos especificos.
 4. Rode:
 
 ```bash
@@ -26,22 +40,23 @@ python scripts/preparar-palavras.py
 
 O script:
 
-- normaliza acentos;
-- transforma `ç` em `c`;
-- remove palavras com numeros, hifen, espaco, apostrofo ou simbolos;
-- filtra apenas palavras de 5 letras apos normalizacao;
+- le uma ou mais fontes locais;
+- normaliza para minusculas;
+- remove acentos;
+- converte `ç` para `c`;
+- filtra apenas palavras com exatamente 5 letras;
+- remove palavras com hifen, espaco, numero, apostrofo, simbolos ou caracteres invalidos;
 - remove duplicadas;
-- gera `validWords.json` e `answers.json`.
+- aplica blocklist;
+- gera os JSONs finais.
 
-## Curadoria de respostas
+## Comando usado nesta etapa
 
-Para `answers.json`, evite:
+```bash
+python scripts/preparar-palavras.py
+```
 
-- palavras ofensivas;
-- nomes proprios;
-- siglas;
-- termos raros demais;
-- flexoes muito estranhas;
-- palavras que possam gerar confusao por grafia.
+Resultado desta geracao:
 
-Quando `scripts/answers-curadas.txt` existir e tiver palavras validas, ele sera usado como origem de `answers.json`. Caso contrario, o script usa a lista completa filtrada.
+- `validWords.json`: 14875 palavras.
+- `answers.json`: 2800 respostas.

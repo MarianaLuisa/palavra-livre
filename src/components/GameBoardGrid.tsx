@@ -3,16 +3,24 @@ import { Board } from "./Board";
 
 type GameBoardGridProps = {
   boards: BoardState[];
-  currentGuess: string;
+  currentGuessLetters: string[];
+  activeTileIndex: number;
   maxAttempts: number;
   gameStatus: GameStatus;
+  isRevealing: boolean;
+  revealingAnswers: string[];
+  onTileSelect: (index: number) => void;
 };
 
 export function GameBoardGrid({
   boards,
-  currentGuess,
+  currentGuessLetters,
+  activeTileIndex,
   maxAttempts,
   gameStatus,
+  isRevealing,
+  revealingAnswers,
+  onTileSelect,
 }: GameBoardGridProps) {
   return (
     <section className={`board-grid count-${boards.length}`} aria-label="Tabuleiros">
@@ -21,9 +29,12 @@ export function GameBoardGrid({
           key={board.answer}
           board={board}
           boardNumber={index + 1}
-          currentGuess={currentGuess}
+          currentGuessLetters={currentGuessLetters}
+          activeTileIndex={activeTileIndex}
           maxAttempts={maxAttempts}
           gameStatus={gameStatus}
+          isRevealing={isRevealing && revealingAnswers.includes(board.answer)}
+          onTileSelect={onTileSelect}
         />
       ))}
     </section>

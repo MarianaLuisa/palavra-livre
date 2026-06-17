@@ -39,7 +39,7 @@ export function App() {
     }, 2200);
 
     return () => window.clearTimeout(timeoutId);
-  }, [game]);
+  }, [game.message, game.messageId, game.clearMessage]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -97,7 +97,11 @@ export function App() {
         onToggleTheme={handleToggleTheme}
       />
       <main className="game-layout">
-        <ModeSelector activeMode={game.mode} onChangeMode={handleChangeMode} />
+        <ModeSelector
+          activeMode={game.mode}
+          disabled={game.isRevealing}
+          onChangeMode={handleChangeMode}
+        />
         <section className="status-panel" aria-label="Status da partida">
           <div>
             <span>Modo</span>
@@ -115,8 +119,14 @@ export function App() {
               {game.solvedCount}/{game.config.boardCount}
             </strong>
           </div>
-          <button className="secondary-button compact" type="button" onClick={handlePlayAgain}>
-            Jogar novamente
+          <button
+            className="secondary-button compact"
+            type="button"
+            onClick={handlePlayAgain}
+            disabled={game.isRevealing}
+            aria-label="Jogar novamente com novas palavras"
+          >
+            {game.isRevealing ? "Revelando..." : "Jogar novamente"}
           </button>
         </section>
         <div
@@ -129,12 +139,20 @@ export function App() {
         </div>
         <GameBoardGrid
           boards={game.boards}
-          currentGuess={game.currentGuess}
+          currentGuessLetters={game.currentGuessLetters}
+          activeTileIndex={game.activeTileIndex}
           maxAttempts={game.config.maxAttempts}
           gameStatus={game.status}
+          isRevealing={game.isRevealing}
+          revealingAnswers={game.revealingAnswers}
+          onTileSelect={game.selectTile}
         />
       </main>
-      <Keyboard keyStatuses={game.keyboardStatuses} onKey={game.handleKey} />
+      <Keyboard
+        keyStatuses={game.keyboardStatuses}
+        disabled={game.isRevealing}
+        onKey={game.handleKey}
+      />
       <EndGameModal
         open={endGameOpen}
         status={game.status}

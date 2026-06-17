@@ -20,7 +20,7 @@ A mesma tentativa e aplicada a todos os tabuleiros ativos. Quando um tabuleiro e
 - Vitest
 - localStorage
 
-O MVP nao usa backend, banco de dados ou API externa em runtime.
+O jogo nao usa backend, banco de dados ou API externa em runtime.
 
 ## Instalar
 
@@ -35,6 +35,22 @@ npm run dev
 ```
 
 Depois abra o endereco exibido pelo Vite, normalmente `http://localhost:5173`.
+
+## Jogabilidade
+
+- Clique em uma celula da linha atual para escolher a posicao ativa.
+- Digite no teclado fisico ou no teclado virtual.
+- A letra entra na celula ativa e o foco avanca automaticamente.
+- Clique em uma celula preenchida para substituir a letra.
+- Use Backspace para apagar a celula ativa ou a anterior.
+- Use setas esquerda/direita para mover a celula ativa.
+- Ao enviar uma palavra valida, as letras sao reveladas uma por uma.
+
+## Historico de respostas
+
+O Palavra Livre salva no localStorage quais respostas ja foram sorteadas. Enquanto houver respostas disponiveis, novas partidas evitam repetir palavras ja usadas. Quando a lista se esgota para o tamanho do modo atual, o historico e reiniciado automaticamente.
+
+Esse historico e local ao navegador do jogador e nao depende de servidor.
 
 ## Testar
 
@@ -54,31 +70,53 @@ Para inspecionar o build:
 npm run preview
 ```
 
-## Trocar a lista de palavras
+## Atualizar a base oficial de palavras
 
-Os dados ficam em:
+Os dados finais ficam em:
 
 - `src/data/validWords.json`: palavras aceitas como tentativa.
 - `src/data/answers.json`: palavras que podem ser sorteadas como resposta.
 
-Para gerar as listas a partir de uma fonte maior:
+As fontes brutas devem ficar em `word-sources/`. Essa pasta aceita um ou mais arquivos locais e os arquivos brutos sao ignorados pelo Git.
 
-1. Coloque a lista bruta em `palavras-originais.txt`, na raiz do projeto.
-2. Ajuste `scripts/blocklist.txt` com palavras proibidas, se necessario.
-3. Ajuste `scripts/answers-curadas.txt` com respostas boas e comuns, se quiser uma lista menor e curada.
+Fontes recomendadas:
+
+- `fserb/pt-br`: fonte principal, licenca MIT.
+- `pythonprobr/palavras`: fonte complementar opcional.
+
+Fluxo:
+
+1. Coloque arquivos de fonte em `word-sources/`.
+2. Ajuste `scripts/blocklist.txt`.
+3. Ajuste `scripts/answers-curadas.txt`, se quiser priorizar respostas manuais.
 4. Rode:
 
 ```bash
 python scripts/preparar-palavras.py
 ```
 
-O script normaliza acentos, transforma `ç` em `c`, remove duplicadas e filtra apenas palavras de 5 letras.
+O script normaliza acentos, transforma `ç` em `c`, remove duplicadas, filtra apenas palavras de 5 letras e gera os JSONs finais.
 
-## Fonte recomendada das palavras
+Veja detalhes em [WORDS_SOURCE.md](WORDS_SOURCE.md).
 
-A fonte principal recomendada e o lexico `fserb/pt-br`, disponibilizado sob licenca MIT. Use essa base para gerar `validWords.json` e mantenha `answers.json` como uma selecao manualmente curada, evitando termos ofensivos, nomes proprios, siglas e palavras raras demais.
+## GitHub
 
-Veja mais detalhes em [WORDS_SOURCE.md](WORDS_SOURCE.md).
+Depois de criar um repositorio remoto:
+
+```bash
+git remote add origin URL_DO_REPOSITORIO
+git branch -M main
+git push -u origin main
+```
+
+Para subir atualizacoes futuras:
+
+```bash
+git status
+git add .
+git commit -m "Describe the change"
+git push
+```
 
 ## Deploy
 
@@ -93,10 +131,6 @@ Veja mais detalhes em [WORDS_SOURCE.md](WORDS_SOURCE.md).
 - Build command: `npm run build`
 - Publish directory: `dist`
 
-## Prints
-
-Secao reservada para imagens futuras da interface.
-
 ## Licenca
 
-MIT. Confira tambem a licenca da fonte de palavras usada para gerar as listas finais.
+MIT. Confira tambem as licencas das fontes usadas para gerar as listas de palavras.

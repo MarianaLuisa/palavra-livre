@@ -1,14 +1,21 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import validWords from "../data/validWords.json";
 import type { BoardState, GameMode, GameStatus, StoredStats } from "../types/game";
 import {
   MODE_CONFIG,
   MODE_STORAGE_KEY,
+  REVEAL_TOTAL_MS,
   STATS_STORAGE_KEY,
   WORD_LENGTH,
 } from "../utils/constants";
 import { evaluateGuess } from "../utils/evaluateGuess";
-import { getRandomWords } from "../utils/getRandomWords";
+import {
+  createEmptyGuess,
+  guessLettersToWord,
+  isCompleteGuess,
+  removeGuessLetter,
+  setGuessLetter,
+} from "../utils/guessInput";
 import { getKeyboardStatus } from "../utils/keyboardStatus";
 import { normalizeWord } from "../utils/normalizeWord";
 import {
@@ -16,6 +23,7 @@ import {
   normalizeStats,
   recordFinishedGame,
 } from "../utils/storage";
+import { getRandomWordsWithHistory } from "../utils/wordHistory";
 import { useLocalStorage } from "./useLocalStorage";
 
 const normalizedValidWords = new Set(validWords.map((word) => normalizeWord(word)));
@@ -26,11 +34,15 @@ function isGameMode(value: unknown): value is GameMode {
 }
 
 function createBoards(mode: GameMode): BoardState[] {
-  return getRandomWords(MODE_CONFIG[mode].boardCount).map((answer) => ({
+  return getRandomWordsWithHistory(MODE_CONFIG[mode].boardCount).map((answer) => ({
     answer,
     solved: false,
     rows: [],
   }));
+}
+
+function clampTileIndex(index: number): number {
+  return Math.min(Math.max(index, 0), WORD_LENGTH - 1);
 }
 
 export function useGame() {
@@ -44,18 +56,48 @@ export function useGame() {
     createEmptyStats(),
   );
   const [boards, setBoards] = useState<BoardState[]>(() => createBoards(mode));
-  const [currentGuess, setCurrentGuess] = useState("");
+  const [currentGuessLetters, setCurrentGuessLetters] = useState<string[]>(() => createEmptyGuess());
+  const [activeTileIndex, setActiveTileIndex] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<GameStatus>("playing");
   const [message, setMessage] = useState("");
   const [messageId, setMessageId] = useState(0);
+  const [isRevealing, setIsRevealing] = useState(false);
+  const [revealingAnswers, setRevealingAnswers] = useState<string[]>([]);
   const lastSubmitAtRef = useRef(0);
   const gameFinishedRef = useRef(false);
+  const isRevealingRef = useRef(false);
+  const revealTimeoutRef = useRef<number | null>(null);
 
   const config = MODE_CONFIG[mode];
   const normalizedStats = useMemo(() => normalizeStats(stats), [stats]);
-  const keyboardStatuses = useMemo(() => getKeyboardStatus(boards), [boards]);
+  const keyboardSourceBoards = useMemo(() => {
+    if (!isRevealing) {
+      return boards;
+    }
+
+    return boards.map((board) => {
+      if (!revealingAnswers.includes(board.answer)) {
+        return board;
+      }
+
+      return {
+        ...board,
+        rows: board.rows.slice(0, -1),
+      };
+    });
+  }, [boards, isRevealing, revealingAnswers]);
+  const keyboardStatuses = useMemo(() => getKeyboardStatus(keyboardSourceBoards), [keyboardSourceBoards]);
+  const currentGuess = guessLettersToWord(currentGuessLetters);
   const solvedCount = boards.filter((board) => board.solved).length;
+
+  useEffect(() => {
+    return () => {
+      if (revealTimeoutRef.current !== null) {
+        window.clearTimeout(revealTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const showMessage = useCallback((text: string) => {
     setMessage(text);
@@ -68,61 +110,115 @@ export function useGame() {
 
   const resetGame = useCallback(
     (nextMode: GameMode = mode) => {
+      if (isRevealingRef.current) {
+        return;
+      }
+
+      if (revealTimeoutRef.current !== null) {
+        window.clearTimeout(revealTimeoutRef.current);
+      }
+
       gameFinishedRef.current = false;
       lastSubmitAtRef.current = 0;
       setBoards(createBoards(nextMode));
-      setCurrentGuess("");
+      setCurrentGuessLetters(createEmptyGuess());
+      setActiveTileIndex(0);
       setAttempt(0);
       setStatus("playing");
       setMessage("");
+      setIsRevealing(false);
+      setRevealingAnswers([]);
     },
     [mode],
   );
 
   const changeMode = useCallback(
     (nextMode: GameMode) => {
+      if (isRevealingRef.current) {
+        return;
+      }
+
       setStoredMode(nextMode);
       resetGame(nextMode);
     },
     [resetGame, setStoredMode],
   );
 
-  const addLetter = useCallback(
-    (letter: string) => {
-      if (status !== "playing" || currentGuess.length >= WORD_LENGTH) {
+  const selectTile = useCallback(
+    (index: number) => {
+      if (status !== "playing" || isRevealingRef.current) {
         return;
       }
 
-      const normalizedLetter = normalizeWord(letter);
-
-      if (/^[a-z]$/.test(normalizedLetter)) {
-        setCurrentGuess((previousGuess) => previousGuess + normalizedLetter);
-        setMessage("");
-      }
+      setActiveTileIndex(clampTileIndex(index));
     },
-    [currentGuess.length, status],
+    [status],
+  );
+
+  const addLetter = useCallback(
+    (letter: string) => {
+      if (status !== "playing" || isRevealingRef.current) {
+        return;
+      }
+
+      setCurrentGuessLetters((previousLetters) => {
+        const result = setGuessLetter(previousLetters, activeTileIndex, letter);
+        setActiveTileIndex(result.activeIndex);
+        return result.letters;
+      });
+      setMessage("");
+    },
+    [activeTileIndex, status],
   );
 
   const removeLetter = useCallback(() => {
-    if (status !== "playing") {
+    if (status !== "playing" || isRevealingRef.current) {
       return;
     }
 
-    setCurrentGuess((previousGuess) => previousGuess.slice(0, -1));
+    setCurrentGuessLetters((previousLetters) => {
+      const result = removeGuessLetter(previousLetters, activeTileIndex);
+      setActiveTileIndex(result.activeIndex);
+      return result.letters;
+    });
     setMessage("");
-  }, [status]);
+  }, [activeTileIndex, status]);
+
+  const finishReveal = useCallback(
+    (
+      finalBoards: BoardState[],
+      nextAttempt: number,
+      nextStatus: GameStatus,
+    ) => {
+      setBoards(finalBoards);
+      setAttempt(nextAttempt);
+      setStatus(nextStatus);
+      setIsRevealing(false);
+      setRevealingAnswers([]);
+      isRevealingRef.current = false;
+      revealTimeoutRef.current = null;
+
+      if (nextStatus !== "playing" && !gameFinishedRef.current) {
+        gameFinishedRef.current = true;
+        setStats((previousStats) =>
+          recordFinishedGame(previousStats, mode, nextStatus === "won", nextAttempt),
+        );
+      }
+    },
+    [mode, setStats],
+  );
 
   const submitGuess = useCallback(() => {
-    if (status !== "playing" || gameFinishedRef.current) {
+    if (status !== "playing" || isRevealingRef.current || gameFinishedRef.current) {
+      return;
+    }
+
+    if (!isCompleteGuess(currentGuessLetters)) {
+      showMessage("Complete a palavra.");
       return;
     }
 
     const normalizedGuess = normalizeWord(currentGuess);
-
-    if (normalizedGuess.length !== WORD_LENGTH) {
-      showMessage("Digite uma palavra com 5 letras.");
-      return;
-    }
 
     if (!normalizedValidWords.has(normalizedGuess)) {
       showMessage("Essa palavra ainda nao esta na lista.");
@@ -137,54 +233,65 @@ export function useGame() {
 
     lastSubmitAtRef.current = now;
 
-    const nextBoards = boards.map((board) => {
+    const revealingBoards: string[] = [];
+    const evaluatedBoards = boards.map((board) => {
       if (board.solved) {
         return board;
       }
 
       const evaluatedRow = evaluateGuess(normalizedGuess, board.answer);
-      const solved = evaluatedRow.every(({ status: letterStatus }) => letterStatus === "correct");
+      revealingBoards.push(board.answer);
+
+      return {
+        ...board,
+        rows: [...board.rows, evaluatedRow],
+      };
+    });
+    const finalBoards = evaluatedBoards.map((board) => {
+      if (!revealingBoards.includes(board.answer)) {
+        return board;
+      }
+
+      const lastRow = board.rows.at(-1) ?? [];
+      const solved = lastRow.every(({ status: letterStatus }) => letterStatus === "correct");
 
       return {
         ...board,
         solved,
-        rows: [...board.rows, evaluatedRow],
       };
     });
-
     const nextAttempt = attempt + 1;
-    const nextStatus: GameStatus = nextBoards.every((board) => board.solved)
+    const nextStatus: GameStatus = finalBoards.every((board) => board.solved)
       ? "won"
       : nextAttempt >= config.maxAttempts
         ? "lost"
         : "playing";
 
-    if (nextStatus !== "playing") {
-      gameFinishedRef.current = true;
-      setStats((previousStats) =>
-        recordFinishedGame(previousStats, mode, nextStatus === "won", nextAttempt),
-      );
-    }
-
-    setBoards(nextBoards);
-    setAttempt(nextAttempt);
-    setCurrentGuess("");
-    setStatus(nextStatus);
+    isRevealingRef.current = true;
+    setIsRevealing(true);
+    setRevealingAnswers(revealingBoards);
+    setBoards(evaluatedBoards);
+    setCurrentGuessLetters(createEmptyGuess());
+    setActiveTileIndex(0);
     setMessage("");
+
+    revealTimeoutRef.current = window.setTimeout(() => {
+      finishReveal(finalBoards, nextAttempt, nextStatus);
+    }, REVEAL_TOTAL_MS);
   }, [
     attempt,
     boards,
     config.maxAttempts,
     currentGuess,
-    mode,
-    setStats,
+    currentGuessLetters,
+    finishReveal,
     showMessage,
     status,
   ]);
 
   const handleKey = useCallback(
     (key: string): boolean => {
-      if (status !== "playing") {
+      if (status !== "playing" || isRevealingRef.current) {
         return false;
       }
 
@@ -195,6 +302,16 @@ export function useGame() {
 
       if (key === "Backspace") {
         removeLetter();
+        return true;
+      }
+
+      if (key === "ArrowLeft") {
+        setActiveTileIndex((previousIndex) => clampTileIndex(previousIndex - 1));
+        return true;
+      }
+
+      if (key === "ArrowRight") {
+        setActiveTileIndex((previousIndex) => clampTileIndex(previousIndex + 1));
         return true;
       }
 
@@ -215,6 +332,8 @@ export function useGame() {
     config,
     boards,
     currentGuess,
+    currentGuessLetters,
+    activeTileIndex,
     attempt,
     status,
     message,
@@ -222,6 +341,8 @@ export function useGame() {
     solvedCount,
     stats: normalizedStats,
     keyboardStatuses,
+    isRevealing,
+    revealingAnswers,
     resetGame,
     changeMode,
     addLetter,
@@ -229,5 +350,6 @@ export function useGame() {
     submitGuess,
     handleKey,
     clearMessage,
+    selectTile,
   };
 }

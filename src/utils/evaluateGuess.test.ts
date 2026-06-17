@@ -1,9 +1,19 @@
 import { describe, expect, it } from "vitest";
+import answersData from "../data/answers.json";
+import validWordsData from "../data/validWords.json";
 import type { BoardState } from "../types/game";
 import { evaluateGuess } from "./evaluateGuess";
 import { getRandomWords } from "./getRandomWords";
+import {
+  canSubmitGuess,
+  createEmptyGuess,
+  isCompleteGuess,
+  removeGuessLetter,
+  setGuessLetter,
+} from "./guessInput";
 import { getKeyboardStatus } from "./keyboardStatus";
 import { normalizeWord } from "./normalizeWord";
+import { selectWordsAvoidingHistory } from "./wordHistory";
 
 function statusesFor(guess: string, answer: string) {
   return evaluateGuess(guess, answer).map(({ status }) => status);
@@ -71,6 +81,12 @@ describe("evaluateGuess", () => {
   });
 });
 
+describe("normalizeWord", () => {
+  it("remove acentos e converte cedilha", () => {
+    expect(normalizeWord("Ma\u00e7\u00e3s")).toBe("macas");
+  });
+});
+
 describe("getRandomWords", () => {
   it("nao retorna palavras duplicadas", () => {
     const words = getRandomWords(
@@ -86,6 +102,84 @@ describe("getRandomWords", () => {
 
   it("respeita a quantidade pedida", () => {
     expect(getRandomWords(2, ["carta", "sabor", "verde"], () => 0)).toHaveLength(2);
+  });
+});
+
+describe("wordHistory", () => {
+  it("nao retorna duplicadas na mesma partida", () => {
+    const selection = selectWordsAvoidingHistory(
+      4,
+      ["carta", "sabor", "verde", "livro", "piano"],
+      [],
+      () => 0,
+    );
+
+    expect(new Set(selection.words.map(normalizeWord)).size).toBe(selection.words.length);
+  });
+
+  it("evita repetir palavras ja usadas", () => {
+    const selection = selectWordsAvoidingHistory(
+      2,
+      ["carta", "sabor", "verde", "livro"],
+      ["carta", "sabor"],
+      () => 0,
+    );
+
+    expect(selection.words.map(normalizeWord).sort()).toEqual(["livro", "verde"]);
+    expect(selection.historyWasReset).toBe(false);
+  });
+
+  it("reseta historico quando nao ha respostas disponiveis suficientes", () => {
+    const selection = selectWordsAvoidingHistory(
+      2,
+      ["carta", "sabor", "verde"],
+      ["carta", "sabor"],
+      () => 0,
+    );
+
+    expect(selection.words).toHaveLength(2);
+    expect(selection.nextHistory).toHaveLength(2);
+    expect(selection.historyWasReset).toBe(true);
+  });
+});
+
+describe("guessInput", () => {
+  it("preenche a celula ativa e avanca", () => {
+    const result = setGuessLetter(createEmptyGuess(), 2, "R");
+
+    expect(result.letters).toEqual(["", "", "r", "", ""]);
+    expect(result.activeIndex).toBe(3);
+  });
+
+  it("backspace apaga a celula ativa ou a anterior", () => {
+    const first = setGuessLetter(createEmptyGuess(), 0, "c");
+    const second = setGuessLetter(first.letters, 1, "a");
+    const result = removeGuessLetter(second.letters, 2);
+
+    expect(result.letters).toEqual(["c", "", "", "", ""]);
+    expect(result.activeIndex).toBe(1);
+  });
+
+  it("tentativa incompleta nao submete", () => {
+    const letters = ["c", "a", "", "t", "a"];
+
+    expect(isCompleteGuess(letters)).toBe(false);
+    expect(canSubmitGuess("playing", false, letters)).toBe(false);
+  });
+
+  it("isRevealing bloqueia nova submissao", () => {
+    expect(canSubmitGuess("playing", true, ["c", "a", "r", "t", "a"])).toBe(false);
+  });
+});
+
+describe("word data", () => {
+  it("mantem validWords e answers com palavras normalizadas de 5 letras", () => {
+    for (const words of [validWordsData, answersData]) {
+      const normalizedWords = words.map(normalizeWord);
+
+      expect(normalizedWords.every((word) => /^[a-z]{5}$/.test(word))).toBe(true);
+      expect(new Set(normalizedWords).size).toBe(words.length);
+    }
   });
 });
 

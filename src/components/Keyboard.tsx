@@ -3,10 +3,11 @@ import { KEYBOARD_ROWS } from "../utils/constants";
 
 type KeyboardProps = {
   keyStatuses: Record<string, LetterStatus>;
+  disabled?: boolean;
   onKey: (key: string) => void;
 };
 
-export function Keyboard({ keyStatuses, onKey }: KeyboardProps) {
+export function Keyboard({ keyStatuses, disabled = false, onKey }: KeyboardProps) {
   return (
     <section className="keyboard" aria-label="Teclado virtual">
       {KEYBOARD_ROWS.map((row, rowIndex) => (
@@ -15,6 +16,7 @@ export function Keyboard({ keyStatuses, onKey }: KeyboardProps) {
             <button
               className="keyboard-key action-key"
               type="button"
+              disabled={disabled}
               onClick={() => onKey("Enter")}
               aria-label="Enviar tentativa"
             >
@@ -27,6 +29,7 @@ export function Keyboard({ keyStatuses, onKey }: KeyboardProps) {
               className={`keyboard-key ${keyStatuses[letter] ?? "empty"}`}
               key={letter}
               type="button"
+              disabled={disabled}
               onClick={() => onKey(letter)}
               aria-label={`Letra ${letter.toUpperCase()}`}
             >
@@ -38,6 +41,7 @@ export function Keyboard({ keyStatuses, onKey }: KeyboardProps) {
             <button
               className="keyboard-key action-key"
               type="button"
+              disabled={disabled}
               onClick={() => onKey("Backspace")}
               aria-label="Apagar letra"
             >
