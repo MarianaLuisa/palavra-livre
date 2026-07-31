@@ -17,10 +17,10 @@ export function Keyboard({ keyStatuses, disabled = false, onKey }: KeyboardProps
               className="keyboard-key action-key"
               type="button"
               disabled={disabled}
-              onClick={() => onKey("Enter")}
-              aria-label="Enviar tentativa"
+              onClick={() => onKey("Backspace")}
+              aria-label="Apagar letra"
             >
-              Enter
+              Apagar
             </button>
           ) : null}
 
@@ -42,10 +42,10 @@ export function Keyboard({ keyStatuses, disabled = false, onKey }: KeyboardProps
               className="keyboard-key action-key"
               type="button"
               disabled={disabled}
-              onClick={() => onKey("Backspace")}
-              aria-label="Apagar letra"
+              onClick={() => onKey("Enter")}
+              aria-label="Enviar tentativa"
             >
-              Apagar
+              Enter
             </button>
           ) : null}
         </div>

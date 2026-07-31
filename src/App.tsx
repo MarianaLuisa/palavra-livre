@@ -75,31 +75,42 @@ export function App() {
   }, [endGameOpen, game, rulesOpen, statsOpen]);
 
   function handleChangeMode(mode: GameMode) {
-    game.changeMode(mode);
-    setEndGameOpen(false);
+    if (game.changeMode(mode) !== false) {
+      setEndGameOpen(false);
+    }
   }
 
   function handlePlayAgain() {
-    game.resetGame();
-    setEndGameOpen(false);
+    if (game.resetGame() !== false) {
+      setEndGameOpen(false);
+    }
   }
 
   function handleToggleTheme() {
     setTheme((currentTheme) => (currentTheme === "dark" ? "light" : "dark"));
   }
 
+  const restartLabel = game.isRevealing
+    ? "Revelando..."
+    : game.canRestart
+      ? "Jogar novamente"
+      : game.status === "playing"
+        ? "Termine a partida"
+        : `Complete os 4 modos (${game.cycleProgress.completed}/${game.cycleProgress.total})`;
+
   return (
     <div className="app-shell">
       <Header
         theme={theme}
+        summary={`${game.config.label} · ${game.attempt}/${game.config.maxAttempts} · ${game.solvedCount}/${game.config.boardCount} · ciclo ${game.cycleProgress.completed}/${game.cycleProgress.total}`}
         onOpenRules={() => setRulesOpen(true)}
         onOpenStats={() => setStatsOpen(true)}
         onToggleTheme={handleToggleTheme}
-      />
-      <main className="game-layout">
+      >
         <ModeSelector
           activeMode={game.mode}
-          disabled={game.isRevealing}
+          completedModes={game.cycleProgress.completedModes}
+          disabled={!game.canChangeMode}
           onChangeMode={handleChangeMode}
         />
         <section className="status-panel" aria-label="Status da partida">
@@ -123,12 +134,19 @@ export function App() {
             className="secondary-button compact"
             type="button"
             onClick={handlePlayAgain}
-            disabled={game.isRevealing}
+            disabled={!game.canRestart}
+            title={
+              game.canRestart
+                ? "Comecar novo ciclo"
+                : "Disponivel depois de concluir Simples, Dueto, Quarteto e Sexteto"
+            }
             aria-label="Jogar novamente com novas palavras"
           >
-            {game.isRevealing ? "Revelando..." : "Jogar novamente"}
+            {restartLabel}
           </button>
         </section>
+      </Header>
+      <main className="game-layout">
         <div
           className={game.message ? "message visible" : "message"}
           key={game.messageId}
@@ -159,6 +177,8 @@ export function App() {
         mode={game.mode}
         attemptsUsed={game.attempt}
         boards={game.boards}
+        canPlayAgain={game.canRestart}
+        playAgainLabel={restartLabel}
         onPlayAgain={handlePlayAgain}
         onClose={() => setEndGameOpen(false)}
       />

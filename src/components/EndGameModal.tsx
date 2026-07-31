@@ -10,6 +10,8 @@ type EndGameModalProps = {
   mode: GameMode;
   attemptsUsed: number;
   boards: BoardState[];
+  canPlayAgain: boolean;
+  playAgainLabel: string;
   onPlayAgain: () => void;
   onClose: () => void;
 };
@@ -20,6 +22,8 @@ export function EndGameModal({
   mode,
   attemptsUsed,
   boards,
+  canPlayAgain,
+  playAgainLabel,
   onPlayAgain,
   onClose,
 }: EndGameModalProps) {
@@ -84,8 +88,13 @@ export function EndGameModal({
           ))}
         </div>
         <div className="modal-actions">
-          <button className="primary-button" type="button" onClick={onPlayAgain}>
-            Jogar novamente
+          <button
+            className="primary-button"
+            type="button"
+            onClick={onPlayAgain}
+            disabled={!canPlayAgain}
+          >
+            {playAgainLabel}
           </button>
           <button className="secondary-button" type="button" onClick={() => void copyResult()}>
             Copiar resultado

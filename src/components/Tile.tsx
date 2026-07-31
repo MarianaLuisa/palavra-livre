@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { LetterStatus } from "../types/game";
+import { TILE_REVEAL_DELAY_MS } from "../utils/constants";
 
 type TileProps = {
   letter: string;
@@ -37,7 +38,9 @@ export function Tile({
   ]
     .filter(Boolean)
     .join(" ");
-  const style = isRevealing ? ({ "--tile-delay": `${index * 180}ms` } as CSSProperties) : undefined;
+  const style = isRevealing
+    ? ({ "--tile-delay": `${index * TILE_REVEAL_DELAY_MS}ms` } as CSSProperties)
+    : undefined;
   const label = letter ? `${displayLetter}, ${STATUS_LABELS[status]}` : `casa ${index + 1} vazia`;
 
   if (isEditable) {

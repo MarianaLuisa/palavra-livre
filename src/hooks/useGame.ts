@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import validWords from "../data/validWords.json";
-import type { BoardState, GameMode, GameStatus, StoredStats } from "../types/game";
+import type {
+  BoardState,
+  CycleResults,
+  FinishedModeResult,
+  GameMode,
+  GameStatus,
+  StoredStats,
+} from "../types/game";
 import {
+  CYCLE_RESULTS_STORAGE_KEY,
   MODE_CONFIG,
   MODE_STORAGE_KEY,
+  MODES,
   REVEAL_TOTAL_MS,
   STATS_STORAGE_KEY,
   WORD_LENGTH,
@@ -29,6 +38,16 @@ import { useLocalStorage } from "./useLocalStorage";
 const normalizedValidWords = new Set(validWords.map((word) => normalizeWord(word)));
 const SUBMIT_LOCK_MS = 280;
 
+type ResetGameOptions = {
+  force?: boolean;
+};
+
+type GameSnapshot = {
+  boards: BoardState[];
+  attempt: number;
+  status: GameStatus;
+};
+
 function isGameMode(value: unknown): value is GameMode {
   return typeof value === "string" && value in MODE_CONFIG;
 }
@@ -39,6 +58,43 @@ function createBoards(mode: GameMode): BoardState[] {
     solved: false,
     rows: [],
   }));
+}
+
+function createFreshSnapshot(mode: GameMode): GameSnapshot {
+  return {
+    boards: createBoards(mode),
+    attempt: 0,
+    status: "playing",
+  };
+}
+
+function createFinishedSnapshot(result: FinishedModeResult): GameSnapshot {
+  return {
+    boards: result.boards,
+    attempt: result.attemptsUsed,
+    status: result.status,
+  };
+}
+
+function normalizeCycleResults(results: CycleResults | null): CycleResults {
+  if (results === null || typeof results !== "object") {
+    return {};
+  }
+
+  return MODES.reduce((normalizedResults, mode) => {
+    const result = results[mode];
+
+    if (
+      result !== undefined &&
+      result.mode === mode &&
+      typeof result.attemptsUsed === "number" &&
+      Array.isArray(result.boards)
+    ) {
+      normalizedResults[mode] = result;
+    }
+
+    return normalizedResults;
+  }, {} as CycleResults);
 }
 
 function clampTileIndex(index: number): number {
@@ -55,22 +111,46 @@ export function useGame() {
     STATS_STORAGE_KEY,
     createEmptyStats(),
   );
-  const [boards, setBoards] = useState<BoardState[]>(() => createBoards(mode));
+  const [cycleResults, setCycleResults] = useLocalStorage<CycleResults>(
+    CYCLE_RESULTS_STORAGE_KEY,
+    {},
+  );
+  const initialCycleResults = normalizeCycleResults(cycleResults);
+  const initialSnapshotRef = useRef<GameSnapshot | null>(null);
+
+  if (initialSnapshotRef.current === null) {
+    const savedResult = initialCycleResults[mode];
+    initialSnapshotRef.current =
+      savedResult !== undefined
+        ? createFinishedSnapshot(savedResult)
+        : createFreshSnapshot(mode);
+  }
+
+  const [boards, setBoards] = useState<BoardState[]>(() => initialSnapshotRef.current!.boards);
   const [currentGuessLetters, setCurrentGuessLetters] = useState<string[]>(() => createEmptyGuess());
   const [activeTileIndex, setActiveTileIndex] = useState(0);
-  const [attempt, setAttempt] = useState(0);
-  const [status, setStatus] = useState<GameStatus>("playing");
+  const [attempt, setAttempt] = useState(() => initialSnapshotRef.current!.attempt);
+  const [status, setStatus] = useState<GameStatus>(() => initialSnapshotRef.current!.status);
   const [message, setMessage] = useState("");
   const [messageId, setMessageId] = useState(0);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealingAnswers, setRevealingAnswers] = useState<string[]>([]);
   const lastSubmitAtRef = useRef(0);
-  const gameFinishedRef = useRef(false);
+  const gameFinishedRef = useRef(initialSnapshotRef.current.status !== "playing");
   const isRevealingRef = useRef(false);
   const revealTimeoutRef = useRef<number | null>(null);
 
   const config = MODE_CONFIG[mode];
   const normalizedStats = useMemo(() => normalizeStats(stats), [stats]);
+  const normalizedCycleResults = useMemo(
+    () => normalizeCycleResults(cycleResults),
+    [cycleResults],
+  );
+  const completedModes = useMemo(
+    () => MODES.filter((cycleMode) => normalizedCycleResults[cycleMode] !== undefined),
+    [normalizedCycleResults],
+  );
+  const allModesCompleted = completedModes.length === MODES.length;
   const keyboardSourceBoards = useMemo(() => {
     if (!isRevealing) {
       return boards;
@@ -90,6 +170,15 @@ export function useGame() {
   const keyboardStatuses = useMemo(() => getKeyboardStatus(keyboardSourceBoards), [keyboardSourceBoards]);
   const currentGuess = guessLettersToWord(currentGuessLetters);
   const solvedCount = boards.filter((board) => board.solved).length;
+  const hasSubmittedGuess = boards.some((board) => board.rows.length > 0);
+  const canRestart = status !== "playing" && !isRevealing && allModesCompleted;
+  const canChangeMode = !isRevealing && (status !== "playing" || !hasSubmittedGuess);
+  const cycleProgress = {
+    completed: completedModes.length,
+    total: MODES.length,
+    allCompleted: allModesCompleted,
+    completedModes,
+  };
 
   useEffect(() => {
     return () => {
@@ -109,13 +198,27 @@ export function useGame() {
   }, []);
 
   const resetGame = useCallback(
-    (nextMode: GameMode = mode) => {
+    (nextMode: GameMode = mode, options: ResetGameOptions = {}) => {
       if (isRevealingRef.current) {
-        return;
+        return false;
+      }
+
+      if (!options.force && status === "playing") {
+        showMessage("Termine a partida antes de jogar novamente.");
+        return false;
+      }
+
+      if (!options.force && !allModesCompleted) {
+        showMessage("Complete os 4 modos antes de jogar novamente.");
+        return false;
       }
 
       if (revealTimeoutRef.current !== null) {
         window.clearTimeout(revealTimeoutRef.current);
+      }
+
+      if (!options.force) {
+        setCycleResults({});
       }
 
       gameFinishedRef.current = false;
@@ -128,20 +231,47 @@ export function useGame() {
       setMessage("");
       setIsRevealing(false);
       setRevealingAnswers([]);
+      return true;
     },
-    [mode],
+    [allModesCompleted, mode, setCycleResults, showMessage, status],
   );
 
   const changeMode = useCallback(
     (nextMode: GameMode) => {
       if (isRevealingRef.current) {
-        return;
+        return false;
+      }
+
+      if (status === "playing" && hasSubmittedGuess) {
+        showMessage("Termine a partida antes de trocar de modo.");
+        return false;
       }
 
       setStoredMode(nextMode);
-      resetGame(nextMode);
+
+      if (revealTimeoutRef.current !== null) {
+        window.clearTimeout(revealTimeoutRef.current);
+      }
+
+      const savedResult = normalizedCycleResults[nextMode];
+      const nextSnapshot =
+        savedResult !== undefined
+          ? createFinishedSnapshot(savedResult)
+          : createFreshSnapshot(nextMode);
+
+      gameFinishedRef.current = nextSnapshot.status !== "playing";
+      lastSubmitAtRef.current = 0;
+      setBoards(nextSnapshot.boards);
+      setCurrentGuessLetters(createEmptyGuess());
+      setActiveTileIndex(0);
+      setAttempt(nextSnapshot.attempt);
+      setStatus(nextSnapshot.status);
+      setMessage("");
+      setIsRevealing(false);
+      setRevealingAnswers([]);
+      return true;
     },
-    [resetGame, setStoredMode],
+    [hasSubmittedGuess, normalizedCycleResults, setStoredMode, showMessage, status],
   );
 
   const selectTile = useCallback(
@@ -200,12 +330,22 @@ export function useGame() {
 
       if (nextStatus !== "playing" && !gameFinishedRef.current) {
         gameFinishedRef.current = true;
+        setCycleResults((previousResults) => ({
+          ...normalizeCycleResults(previousResults),
+          [mode]: {
+            mode,
+            status: nextStatus,
+            attemptsUsed: nextAttempt,
+            boards: finalBoards,
+            finishedAt: new Date().toISOString(),
+          },
+        }));
         setStats((previousStats) =>
           recordFinishedGame(previousStats, mode, nextStatus === "won", nextAttempt),
         );
       }
     },
-    [mode, setStats],
+    [mode, setCycleResults, setStats],
   );
 
   const submitGuess = useCallback(() => {
@@ -221,7 +361,7 @@ export function useGame() {
     const normalizedGuess = normalizeWord(currentGuess);
 
     if (!normalizedValidWords.has(normalizedGuess)) {
-      showMessage("Essa palavra ainda nao esta na lista.");
+      showMessage("Essa palavra não é aceita.");
       return;
     }
 
@@ -339,6 +479,10 @@ export function useGame() {
     message,
     messageId,
     solvedCount,
+    hasSubmittedGuess,
+    canRestart,
+    canChangeMode,
+    cycleProgress,
     stats: normalizedStats,
     keyboardStatuses,
     isRevealing,

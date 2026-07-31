@@ -34,3 +34,13 @@ export type ModeStats = {
 };
 
 export type StoredStats = Record<GameMode, ModeStats>;
+
+export type FinishedModeResult = {
+  mode: GameMode;
+  status: Exclude<GameStatus, "playing">;
+  attemptsUsed: number;
+  boards: BoardState[];
+  finishedAt: string;
+};
+
+export type CycleResults = Partial<Record<GameMode, FinishedModeResult>>;

@@ -1,4 +1,4 @@
-# Palavra Livre
+﻿# Palavra Livre
 
 Palavra Livre e um jogo web em PT-BR de adivinhar palavras de 5 letras. Ele se inspira no formato de jogos como Wordle/Termo, mas tem uma proposta propria: nao existe limite diario. O jogador pode clicar em **Jogar novamente** e iniciar novas partidas quantas vezes quiser.
 
@@ -77,28 +77,34 @@ Os dados finais ficam em:
 - `src/data/validWords.json`: palavras aceitas como tentativa.
 - `src/data/answers.json`: palavras que podem ser sorteadas como resposta.
 
-As fontes brutas devem ficar em `word-sources/`. Essa pasta aceita um ou mais arquivos locais e os arquivos brutos sao ignorados pelo Git.
+As fontes brutas devem ficar em `word-sources/`. Essa pasta aceita arquivos locais e os arquivos brutos sao ignorados pelo Git.
 
-Fontes recomendadas:
+Fonte principal atual:
 
-- `fserb/pt-br`: fonte principal, licenca MIT.
-- `pythonprobr/palavras`: fonte complementar opcional.
+- `fserb/pt-br`: corpus PT-BR sob licenca MIT, a mesma fonte indicada pelo Termo.
+- Arquivo usado para a base do jogo: `lexico`.
 
 Fluxo:
 
-1. Coloque arquivos de fonte em `word-sources/`.
-2. Ajuste `scripts/blocklist.txt`.
-3. Ajuste `scripts/answers-curadas.txt`, se quiser priorizar respostas manuais.
-4. Rode:
+1. Baixe o arquivo `lexico` do repositorio `fserb/pt-br` para `word-sources/`.
+2. Salve como `fserb-pt-br-lexico.txt`.
+3. Ajuste `scripts/blocklist.txt` para termos que nao devem entrar nem como tentativa.
+4. Ajuste `scripts/answer-blocklist.txt` para palavras que nao devem ser sorteadas como resposta.
+5. Ajuste `scripts/answers-curadas.txt`, se quiser priorizar respostas manuais.
+6. Rode:
 
 ```bash
 python scripts/preparar-palavras.py
 ```
 
-O script normaliza acentos, transforma `ç` em `c`, remove duplicadas, filtra apenas palavras de 5 letras e gera os JSONs finais.
+O script normaliza acentos, transforma `ç` em `c`, remove duplicadas, filtra apenas palavras de 5 letras e gera os JSONs finais. As tentativas aceitas e as respostas saem do mesmo `lexico`; as respostas apenas removem a blocklist manual para evitar os termos que nao devem ser sorteados.
+
+Base atual gerada:
+
+- `validWords.json`: 6.032 palavras aceitas.
+- `answers.json`: 5.893 respostas sorteaveis.
 
 Veja detalhes em [WORDS_SOURCE.md](WORDS_SOURCE.md).
-
 ## GitHub
 
 Depois de criar um repositorio remoto:
@@ -134,3 +140,5 @@ git push
 ## Licenca
 
 MIT. Confira tambem as licencas das fontes usadas para gerar as listas de palavras.
+
+

@@ -181,6 +181,27 @@ describe("word data", () => {
       expect(new Set(normalizedWords).size).toBe(words.length);
     }
   });
+
+  it("mantem pelo menos 5000 respostas sorteaveis", () => {
+    expect(answersData.length).toBeGreaterThanOrEqual(5000);
+  });
+
+  it("mantem respostas livres de casos ruins conhecidos", () => {
+    const answers = new Set(answersData);
+
+    expect(answers).not.toContain("apolo");
+    expect(answers).not.toContain("crato");
+    expect(answers).not.toContain("beija");
+    expect(answers).not.toContain("hobby");
+    expect(answers).not.toContain("bosta");
+    expect(answers).not.toContain("olhou");
+  });
+
+  it("mantem respostas dentro da base valida do lexico", () => {
+    const validWords = new Set(validWordsData);
+
+    expect(answersData.every((word) => validWords.has(word))).toBe(true);
+  });
 });
 
 describe("getKeyboardStatus", () => {
