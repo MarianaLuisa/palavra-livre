@@ -6,6 +6,7 @@ export function evaluateGuess(guess: string, answer: string): EvaluatedLetter[] 
   const normalizedAnswer = normalizeWord(answer);
   const guessLetters = [...normalizedGuess];
   const answerLetters = [...normalizedAnswer];
+  const displayAnswerLetters = [...answer.toLowerCase()];
   const remainingLetters = new Map<string, number>();
 
   const evaluated: EvaluatedLetter[] = guessLetters.map((letter) => ({
@@ -15,7 +16,10 @@ export function evaluateGuess(guess: string, answer: string): EvaluatedLetter[] 
 
   answerLetters.forEach((letter, index) => {
     if (guessLetters[index] === letter) {
-      evaluated[index] = { letter: guessLetters[index], status: "correct" };
+      evaluated[index] = {
+        letter: displayAnswerLetters[index] ?? guessLetters[index],
+        status: "correct",
+      };
       return;
     }
 

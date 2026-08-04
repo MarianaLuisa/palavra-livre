@@ -6,13 +6,14 @@ Fonte principal atual:
 
 - `fserb/pt-br`, corpus PT-BR sob licenca MIT.
 - Repositorio: https://github.com/fserb/pt-br/tree/master
-- Arquivos usados: `lexico`, `listas/verbos` e `conjugacoes`.
+- Arquivos usados: `lexico`, `listas/verbos`, `conjugacoes` e `icf`.
 
 Arquivos esperados pelo script:
 
 - `fserb-pt-br-lexico.txt`
 - `fserb-lista-verbos.txt`
 - `fserb-pt-br-conjugacoes.txt`
+- `fserb-pt-br-icf.txt`
 
 Depois de colocar ou atualizar os arquivos, rode na raiz do projeto:
 

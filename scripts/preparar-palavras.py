@@ -21,8 +21,9 @@ WORD_PATTERN = re.compile(r"^[^\W\d_]+$", re.UNICODE)
 WORD_LENGTH = 5
 DEFAULT_ANSWERS_LIMIT: int | None = None
 DEFAULT_MIN_ANSWERS = 5000
+DEFAULT_MAX_ANSWER_ICF_SCORE = 17.0
 FSERB_LEXICON_NAMES = frozenset({"lexico", "fserb-pt-br-lexico.txt"})
-FSERB_SOURCE_MARKERS = ("lexico", "verbos", "conjugacoes")
+FSERB_SOURCE_MARKERS = ("lexico", "verbos", "conjugacoes", "icf")
 ANSWER_EXCLUSION_MARKERS = (
     "conjug",
     "verbos",
@@ -66,6 +67,7 @@ class CliOptions:
     answers_output_path: Path
     answers_limit: int | None
     min_answers: int
+    max_answer_icf_score: float
 
 
 @dataclass(frozen=True)
@@ -99,6 +101,19 @@ def normalize_word(word: str) -> str:
         character
         for character in decomposed_word
         if unicodedata.category(character) != "Mn"
+    )
+
+
+def display_word(word: str) -> str:
+    return unicodedata.normalize("NFC", word.strip().lower())
+
+
+def display_word_score(word: str) -> int:
+    normalized_word = normalize_word(word)
+    return sum(
+        1
+        for display_character, normalized_character in zip(word, normalized_word, strict=False)
+        if display_character != normalized_character
     )
 
 
@@ -374,6 +389,20 @@ def add_candidate(words: set[str], raw_word: str) -> bool:
     return True
 
 
+def add_display_candidate(words: dict[str, str], raw_word: str) -> bool:
+    if not is_valid_raw_word(raw_word):
+        return False
+
+    normalized_word = normalize_word(raw_word)
+    candidate_word = display_word(raw_word)
+    current_word = words.get(normalized_word)
+
+    if current_word is None or display_word_score(candidate_word) > display_word_score(current_word):
+        words[normalized_word] = candidate_word
+
+    return True
+
+
 def read_words_from_hunspell_dic(path: Path, affix_rules: AffixRules) -> tuple[set[str], int]:
     words: set[str] = set()
     removed_by_filter = 0
@@ -436,6 +465,72 @@ def read_words_from_file(path: Path, affix_rules: AffixRules | None = None) -> t
             removed_by_filter += 1
 
     return words, removed_by_filter
+
+
+def read_display_words_from_hunspell_dic(path: Path, affix_rules: AffixRules) -> dict[str, str]:
+    words: dict[str, str] = {}
+
+    for token in path.read_text(encoding="utf-8").split():
+        raw_word, flags = split_hunspell_token(token)
+        add_display_candidate(words, raw_word)
+
+        prefix_rules = [
+            rule
+            for flag in flags
+            for rule in affix_rules.prefixes.get(flag, [])
+        ]
+        suffix_rules = [
+            rule
+            for flag in flags
+            for rule in affix_rules.suffixes.get(flag, [])
+        ]
+
+        for rule in prefix_rules + suffix_rules:
+            inflected_word = apply_affix_rule(raw_word, rule)
+
+            if inflected_word is not None:
+                add_display_candidate(words, inflected_word)
+
+        for prefix_rule in prefix_rules:
+            if not prefix_rule.cross_product:
+                continue
+
+            prefixed_word = apply_affix_rule(raw_word, prefix_rule)
+
+            if prefixed_word is None:
+                continue
+
+            for suffix_rule in suffix_rules:
+                if not suffix_rule.cross_product:
+                    continue
+
+                suffixed_word = apply_affix_rule(prefixed_word, suffix_rule)
+
+                if suffixed_word is not None:
+                    add_display_candidate(words, suffixed_word)
+
+    return words
+
+
+def read_display_words_from_file(path: Path, affix_rules: AffixRules | None = None) -> dict[str, str]:
+    if path.suffix.lower() == ".dic" and affix_rules is not None:
+        return read_display_words_from_hunspell_dic(path, affix_rules)
+
+    words: dict[str, str] = {}
+
+    for token in path.read_text(encoding="utf-8").split():
+        raw_word = candidate_from_token(token)
+        add_display_candidate(words, raw_word)
+
+    return words
+
+
+def merge_display_words(target: dict[str, str], source: dict[str, str]) -> None:
+    for normalized_word, candidate_word in source.items():
+        current_word = target.get(normalized_word)
+
+        if current_word is None or display_word_score(candidate_word) > display_word_score(current_word):
+            target[normalized_word] = candidate_word
 
 
 def read_base_words_from_file(path: Path) -> set[str]:
@@ -537,13 +632,17 @@ def build_words(options: CliOptions) -> WordBuildResult:
         raise SystemExit(1)
 
     all_words: set[str] = set()
+    display_words: dict[str, str] = {}
     removed_by_filter = 0
     affix_rules = read_affix_rules(affix_paths_from_options(options))
 
     for source_path in source_paths:
         words, removed = read_words_from_file(source_path, affix_rules)
         all_words.update(words)
+        merge_display_words(display_words, read_display_words_from_file(source_path, affix_rules))
         removed_by_filter += removed
+
+    icf_scores = read_icf_scores(score_paths_from_options(options))
 
     blocklist = read_manual_word_file(options.blocklist_path)
     answer_blocklist = read_manual_word_file(options.answer_blocklist_path)
@@ -560,6 +659,8 @@ def build_words(options: CliOptions) -> WordBuildResult:
     answers: list[str] = []
     seen_answers: set[str] = set()
 
+    curated_answer_set = set(curated_answers)
+
     for word in curated_answers + valid_words:
         if word in answer_blocklist:
             continue
@@ -567,7 +668,16 @@ def build_words(options: CliOptions) -> WordBuildResult:
         if word in seen_answers:
             continue
 
-        answers.append(word)
+        icf_score = icf_scores.get(word)
+
+        if (
+            word not in curated_answer_set
+            and icf_score is not None
+            and icf_score > options.max_answer_icf_score
+        ):
+            continue
+
+        answers.append(display_words.get(word, word))
         seen_answers.add(word)
 
     if options.answers_limit is not None:
@@ -639,6 +749,15 @@ def parse_args() -> CliOptions:
         default=DEFAULT_MIN_ANSWERS,
         help="Quantidade minima de respostas esperada na lista final.",
     )
+    parser.add_argument(
+        "--max-answer-icf-score",
+        type=float,
+        default=DEFAULT_MAX_ANSWER_ICF_SCORE,
+        help=(
+            "Pontuacao ICF maxima para respostas automaticas. "
+            "Valores menores priorizam palavras mais comuns."
+        ),
+    )
     namespace = parser.parse_args()
 
     return CliOptions(
@@ -651,6 +770,7 @@ def parse_args() -> CliOptions:
         answers_output_path=namespace.answers_output,
         answers_limit=namespace.answers_limit,
         min_answers=namespace.min_answers,
+        max_answer_icf_score=namespace.max_answer_icf_score,
     )
 
 
@@ -663,6 +783,10 @@ def main() -> int:
 
     if options.min_answers < 1:
         sys.stderr.write("--min-answers precisa ser maior que zero.\n")
+        return 1
+
+    if options.max_answer_icf_score < 0:
+        sys.stderr.write("--max-answer-icf-score nao pode ser negativo.\n")
         return 1
 
     result = build_words(options)

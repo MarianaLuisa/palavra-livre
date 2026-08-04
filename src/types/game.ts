@@ -44,3 +44,15 @@ export type FinishedModeResult = {
 };
 
 export type CycleResults = Partial<Record<GameMode, FinishedModeResult>>;
+
+export type SavedGameProgress = {
+  mode: GameMode;
+  boards: BoardState[];
+  currentGuessLetters: string[];
+  activeTileIndex: number;
+  attempt: number;
+  status: GameStatus;
+  updatedAt: string;
+};
+
+export type StoredGameProgress = Partial<Record<GameMode, SavedGameProgress>>;

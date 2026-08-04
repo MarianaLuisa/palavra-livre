@@ -490,13 +490,14 @@ button:focus-visible {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border-radius: 0.38rem;
+  border-radius: 0.28rem;
   border: 2px solid #404559;
   background: #1a1c2a;
   color: var(--text);
-  font-size: clamp(0.72rem, calc(var(--tile-size) * 0.56), 1.9rem);
-  font-weight: 950;
+  font-size: clamp(0.95rem, calc(var(--tile-size) * 0.7), 2.45rem);
+  font-weight: 1000;
   line-height: 1;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
@@ -545,11 +546,17 @@ button.tile {
   border-color: var(--gray);
 }
 
+.tile.correct,
+.tile.present,
+.tile.absent {
+  border-color: transparent;
+}
+
 .tile.revealing {
   animation-delay: var(--tile-delay);
-  animation-duration: 660ms;
+  animation-duration: 860ms;
   animation-fill-mode: both;
-  animation-timing-function: cubic-bezier(0.22, 0.86, 0.32, 1);
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.25, 1);
   transform-style: preserve-3d;
   will-change: transform, background, border-color;
 }
@@ -567,29 +574,29 @@ button.tile {
 }
 
 .keyboard {
-  width: min(100% - 1rem, 53rem);
+  width: min(100% - 1rem, 68rem);
   display: grid;
-  gap: clamp(0.16rem, 0.55vh, 0.28rem);
+  gap: clamp(0.22rem, 0.75vh, 0.42rem);
   margin: 0 auto;
-  padding: clamp(0.22rem, 0.55vh, 0.42rem) 0.25rem clamp(0.25rem, 0.65vh, 0.5rem);
+  padding: clamp(0.3rem, 0.75vh, 0.58rem) 0.25rem clamp(0.38rem, 0.9vh, 0.7rem);
   flex: 0 0 auto;
 }
 
 .keyboard-row {
   display: flex;
   justify-content: center;
-  gap: clamp(0.18rem, 0.55vw, 0.32rem);
+  gap: clamp(0.26rem, 0.7vw, 0.48rem);
 }
 
 .keyboard-key {
   min-width: 0;
-  width: clamp(1.55rem, 5.1vw, 2.65rem);
-  height: clamp(1.95rem, 5.2vh, 2.75rem);
+  width: clamp(2.15rem, 5.6vw, 3.65rem);
+  height: clamp(2.55rem, 6.2vh, 3.65rem);
   border-radius: 0.45rem;
   color: var(--text);
   background: var(--key-bg);
   border: 1px solid var(--key-line);
-  font-size: clamp(0.68rem, 2vw, 0.95rem);
+  font-size: clamp(0.85rem, 2.15vw, 1.18rem);
   font-weight: 950;
   transition:
     filter 120ms ease,
@@ -603,12 +610,12 @@ button.tile {
 }
 
 .keyboard-key.action-key {
-  width: clamp(3.45rem, 12vw, 6rem);
+  width: clamp(5.1rem, 13vw, 8rem);
   padding: 0 0.35rem;
   color: #fff;
   background: var(--key-action);
   border-color: var(--key-action);
-  font-size: clamp(0.62rem, 1.7vw, 0.86rem);
+  font-size: clamp(0.78rem, 1.8vw, 1rem);
 }
 
 .keyboard-key:hover,

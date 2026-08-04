@@ -70,6 +70,16 @@ describe("evaluateGuess", () => {
     ]);
   });
 
+  it("exibe cedilha da resposta quando a letra esta correta", () => {
+    expect(evaluateGuess("cocar", "co\u00e7ar").map(({ letter }) => letter)).toEqual([
+      "c",
+      "o",
+      "\u00e7",
+      "a",
+      "r",
+    ]);
+  });
+
   it("trata letras repetidas respeitando ocorrencias reais", () => {
     expect(statusesFor("aaaaa", "arara")).toEqual([
       "correct",
@@ -187,7 +197,7 @@ describe("word data", () => {
   });
 
   it("mantem respostas livres de casos ruins conhecidos", () => {
-    const answers = new Set(answersData);
+    const answers = new Set(answersData.map(normalizeWord));
 
     expect(answers).not.toContain("apolo");
     expect(answers).not.toContain("crato");
@@ -202,10 +212,19 @@ describe("word data", () => {
     expect(answers).toContain("olhou");
   });
 
-  it("mantem respostas dentro da base valida do lexico", () => {
+  it("inclui ICF amplo nas tentativas e corta respostas menos comuns", () => {
+    const validWords = new Set(validWordsData.map(normalizeWord));
+    const answers = new Set(answersData.map(normalizeWord));
+
+    expect(validWords).toContain("areio");
+    expect(answers).not.toContain("areio");
+    expect(answers).toContain("abaco");
+  });
+
+  it("mantem respostas dentro da base valida", () => {
     const validWords = new Set(validWordsData);
 
-    expect(answersData.every((word) => validWords.has(word))).toBe(true);
+    expect(answersData.every((word) => validWords.has(normalizeWord(word)))).toBe(true);
   });
 });
 

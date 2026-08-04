@@ -82,12 +82,12 @@ As fontes brutas devem ficar em `word-sources/`. Essa pasta aceita arquivos loca
 Fonte principal atual:
 
 - `fserb/pt-br`: corpus PT-BR sob licenca MIT, a mesma fonte indicada pelo Termo.
-- Arquivos usados para a base do jogo: `lexico`, `listas/verbos` e `conjugacoes`.
+- Arquivos usados para a base do jogo: `lexico`, `listas/verbos`, `conjugacoes` e `icf`.
 
 Fluxo:
 
-1. Baixe os arquivos `lexico`, `listas/verbos` e `conjugacoes` do repositorio `fserb/pt-br` para `word-sources/`.
-2. Salve como `fserb-pt-br-lexico.txt`, `fserb-lista-verbos.txt` e `fserb-pt-br-conjugacoes.txt`.
+1. Baixe os arquivos `lexico`, `listas/verbos`, `conjugacoes` e `icf` do repositorio `fserb/pt-br` para `word-sources/`.
+2. Salve como `fserb-pt-br-lexico.txt`, `fserb-lista-verbos.txt`, `fserb-pt-br-conjugacoes.txt` e `fserb-pt-br-icf.txt`.
 3. Ajuste `scripts/blocklist.txt` para termos que nao devem entrar nem como tentativa.
 4. Ajuste `scripts/answer-blocklist.txt` para palavras que nao devem ser sorteadas como resposta.
 5. Ajuste `scripts/answers-curadas.txt`, se quiser priorizar respostas manuais.
@@ -97,12 +97,14 @@ Fluxo:
 python scripts/preparar-palavras.py
 ```
 
-O script normaliza acentos, transforma `ç` em `c`, remove duplicadas, filtra apenas palavras de 5 letras e gera os JSONs finais. As tentativas aceitas e as respostas saem da uniao de `lexico`, `verbos` e `conjugacoes`; as respostas apenas removem a blocklist manual para evitar os termos que nao devem ser sorteados.
+O script normaliza acentos, transforma `ç` em `c`, remove duplicadas, filtra apenas palavras de 5 letras e gera os JSONs finais. As tentativas aceitas ficam normalizadas em `validWords.json`; as respostas preservam a grafia da fonte quando houver acento ou cedilha, como `coçar`, `açude` e `órgão`. Na comparação, o jogo continua ignorando acentos e cedilha, entao digitar `cocar` pode acertar e revelar `coçar`.
+
+As tentativas aceitas saem da uniao de `lexico`, `verbos`, `conjugacoes` e `icf`. As respostas usam essa mesma base, mas filtram palavras automaticas por pontuacao ICF maxima `17.0`, priorizando termos mais comuns. A blocklist manual continua removendo termos que nao devem ser sorteados.
 
 Base atual gerada:
 
-- `validWords.json`: 8.628 palavras aceitas.
-- `answers.json`: 8.486 respostas sorteaveis.
+- `validWords.json`: 11.301 palavras aceitas.
+- `answers.json`: 5.817 respostas sorteaveis.
 
 Veja detalhes em [WORDS_SOURCE.md](WORDS_SOURCE.md).
 ## GitHub

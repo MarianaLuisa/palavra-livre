@@ -6,10 +6,13 @@ import type {
   FinishedModeResult,
   GameMode,
   GameStatus,
+  SavedGameProgress,
+  StoredGameProgress,
   StoredStats,
 } from "../types/game";
 import {
   CYCLE_RESULTS_STORAGE_KEY,
+  GAME_PROGRESS_STORAGE_KEY,
   MODE_CONFIG,
   MODE_STORAGE_KEY,
   MODES,
@@ -44,6 +47,8 @@ type ResetGameOptions = {
 
 type GameSnapshot = {
   boards: BoardState[];
+  currentGuessLetters: string[];
+  activeTileIndex: number;
   attempt: number;
   status: GameStatus;
 };
@@ -63,6 +68,8 @@ function createBoards(mode: GameMode): BoardState[] {
 function createFreshSnapshot(mode: GameMode): GameSnapshot {
   return {
     boards: createBoards(mode),
+    currentGuessLetters: createEmptyGuess(),
+    activeTileIndex: 0,
     attempt: 0,
     status: "playing",
   };
@@ -71,8 +78,20 @@ function createFreshSnapshot(mode: GameMode): GameSnapshot {
 function createFinishedSnapshot(result: FinishedModeResult): GameSnapshot {
   return {
     boards: result.boards,
+    currentGuessLetters: createEmptyGuess(),
+    activeTileIndex: 0,
     attempt: result.attemptsUsed,
     status: result.status,
+  };
+}
+
+function createProgressSnapshot(progress: SavedGameProgress): GameSnapshot {
+  return {
+    boards: progress.boards,
+    currentGuessLetters: progress.currentGuessLetters,
+    activeTileIndex: clampTileIndex(progress.activeTileIndex),
+    attempt: progress.attempt,
+    status: progress.status,
   };
 }
 
@@ -97,6 +116,55 @@ function normalizeCycleResults(results: CycleResults | null): CycleResults {
   }, {} as CycleResults);
 }
 
+function isGameStatus(value: unknown): value is GameStatus {
+  return value === "playing" || value === "won" || value === "lost";
+}
+
+function normalizeGuessLetters(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length !== WORD_LENGTH) {
+    return null;
+  }
+
+  const normalizedLetters = value.map((letter) =>
+    typeof letter === "string" ? normalizeWord(letter).slice(0, 1) : "",
+  );
+
+  if (!normalizedLetters.every((letter) => letter === "" || /^[a-z]$/.test(letter))) {
+    return null;
+  }
+
+  return normalizedLetters;
+}
+
+function normalizeGameProgress(progress: StoredGameProgress | null): StoredGameProgress {
+  if (progress === null || typeof progress !== "object") {
+    return {};
+  }
+
+  return MODES.reduce((normalizedProgress, mode) => {
+    const savedProgress = progress[mode];
+    const currentGuessLetters = normalizeGuessLetters(savedProgress?.currentGuessLetters);
+
+    if (
+      savedProgress !== undefined &&
+      savedProgress.mode === mode &&
+      Array.isArray(savedProgress.boards) &&
+      typeof savedProgress.activeTileIndex === "number" &&
+      typeof savedProgress.attempt === "number" &&
+      isGameStatus(savedProgress.status) &&
+      currentGuessLetters !== null
+    ) {
+      normalizedProgress[mode] = {
+        ...savedProgress,
+        currentGuessLetters,
+        activeTileIndex: clampTileIndex(savedProgress.activeTileIndex),
+      };
+    }
+
+    return normalizedProgress;
+  }, {} as StoredGameProgress);
+}
+
 function clampTileIndex(index: number): number {
   return Math.min(Math.max(index, 0), WORD_LENGTH - 1);
 }
@@ -115,20 +183,32 @@ export function useGame() {
     CYCLE_RESULTS_STORAGE_KEY,
     {},
   );
+  const [storedGameProgress, setStoredGameProgress] = useLocalStorage<StoredGameProgress>(
+    GAME_PROGRESS_STORAGE_KEY,
+    {},
+  );
   const initialCycleResults = normalizeCycleResults(cycleResults);
+  const initialGameProgress = normalizeGameProgress(storedGameProgress);
   const initialSnapshotRef = useRef<GameSnapshot | null>(null);
 
   if (initialSnapshotRef.current === null) {
     const savedResult = initialCycleResults[mode];
+    const savedProgress = initialGameProgress[mode];
     initialSnapshotRef.current =
       savedResult !== undefined
         ? createFinishedSnapshot(savedResult)
+        : savedProgress !== undefined
+          ? createProgressSnapshot(savedProgress)
         : createFreshSnapshot(mode);
   }
 
   const [boards, setBoards] = useState<BoardState[]>(() => initialSnapshotRef.current!.boards);
-  const [currentGuessLetters, setCurrentGuessLetters] = useState<string[]>(() => createEmptyGuess());
-  const [activeTileIndex, setActiveTileIndex] = useState(0);
+  const [currentGuessLetters, setCurrentGuessLetters] = useState<string[]>(
+    () => initialSnapshotRef.current!.currentGuessLetters,
+  );
+  const [activeTileIndex, setActiveTileIndex] = useState(
+    () => initialSnapshotRef.current!.activeTileIndex,
+  );
   const [attempt, setAttempt] = useState(() => initialSnapshotRef.current!.attempt);
   const [status, setStatus] = useState<GameStatus>(() => initialSnapshotRef.current!.status);
   const [message, setMessage] = useState("");
@@ -145,6 +225,10 @@ export function useGame() {
   const normalizedCycleResults = useMemo(
     () => normalizeCycleResults(cycleResults),
     [cycleResults],
+  );
+  const normalizedGameProgress = useMemo(
+    () => normalizeGameProgress(storedGameProgress),
+    [storedGameProgress],
   );
   const completedModes = useMemo(
     () => MODES.filter((cycleMode) => normalizedCycleResults[cycleMode] !== undefined),
@@ -197,6 +281,42 @@ export function useGame() {
     setMessage("");
   }, []);
 
+  const saveGameProgress = useCallback(
+    (snapshot: Omit<SavedGameProgress, "mode" | "updatedAt">, snapshotMode: GameMode = mode) => {
+      setStoredGameProgress((previousProgress) => ({
+        ...normalizeGameProgress(previousProgress),
+        [snapshotMode]: {
+          mode: snapshotMode,
+          ...snapshot,
+          updatedAt: new Date().toISOString(),
+        },
+      }));
+    },
+    [mode, setStoredGameProgress],
+  );
+
+  useEffect(() => {
+    if (isRevealing) {
+      return;
+    }
+
+    saveGameProgress({
+      boards,
+      currentGuessLetters,
+      activeTileIndex,
+      attempt,
+      status,
+    });
+  }, [
+    activeTileIndex,
+    attempt,
+    boards,
+    currentGuessLetters,
+    isRevealing,
+    saveGameProgress,
+    status,
+  ]);
+
   const resetGame = useCallback(
     (nextMode: GameMode = mode, options: ResetGameOptions = {}) => {
       if (isRevealingRef.current) {
@@ -219,6 +339,7 @@ export function useGame() {
 
       if (!options.force) {
         setCycleResults({});
+        setStoredGameProgress({});
       }
 
       gameFinishedRef.current = false;
@@ -233,7 +354,7 @@ export function useGame() {
       setRevealingAnswers([]);
       return true;
     },
-    [allModesCompleted, mode, setCycleResults, showMessage, status],
+    [allModesCompleted, mode, setCycleResults, setStoredGameProgress, showMessage, status],
   );
 
   const changeMode = useCallback(
@@ -254,9 +375,12 @@ export function useGame() {
       }
 
       const savedResult = normalizedCycleResults[nextMode];
+      const savedProgress = normalizedGameProgress[nextMode];
       const nextSnapshot =
         savedResult !== undefined
           ? createFinishedSnapshot(savedResult)
+          : savedProgress !== undefined
+            ? createProgressSnapshot(savedProgress)
           : createFreshSnapshot(nextMode);
 
       gameFinishedRef.current = nextSnapshot.status !== "playing";
@@ -271,7 +395,14 @@ export function useGame() {
       setRevealingAnswers([]);
       return true;
     },
-    [hasSubmittedGuess, normalizedCycleResults, setStoredMode, showMessage, status],
+    [
+      hasSubmittedGuess,
+      normalizedCycleResults,
+      normalizedGameProgress,
+      setStoredMode,
+      showMessage,
+      status,
+    ],
   );
 
   const selectTile = useCallback(
@@ -407,6 +538,31 @@ export function useGame() {
         ? "lost"
         : "playing";
 
+    saveGameProgress({
+      boards: finalBoards,
+      currentGuessLetters: createEmptyGuess(),
+      activeTileIndex: 0,
+      attempt: nextAttempt,
+      status: nextStatus,
+    });
+
+    if (nextStatus !== "playing" && !gameFinishedRef.current) {
+      gameFinishedRef.current = true;
+      setCycleResults((previousResults) => ({
+        ...normalizeCycleResults(previousResults),
+        [mode]: {
+          mode,
+          status: nextStatus,
+          attemptsUsed: nextAttempt,
+          boards: finalBoards,
+          finishedAt: new Date().toISOString(),
+        },
+      }));
+      setStats((previousStats) =>
+        recordFinishedGame(previousStats, mode, nextStatus === "won", nextAttempt),
+      );
+    }
+
     isRevealingRef.current = true;
     setIsRevealing(true);
     setRevealingAnswers(revealingBoards);
@@ -425,6 +581,10 @@ export function useGame() {
     currentGuess,
     currentGuessLetters,
     finishReveal,
+    mode,
+    saveGameProgress,
+    setCycleResults,
+    setStats,
     showMessage,
     status,
   ]);
