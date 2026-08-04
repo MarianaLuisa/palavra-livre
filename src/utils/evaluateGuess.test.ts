@@ -191,10 +191,15 @@ describe("word data", () => {
 
     expect(answers).not.toContain("apolo");
     expect(answers).not.toContain("crato");
-    expect(answers).not.toContain("beija");
     expect(answers).not.toContain("hobby");
     expect(answers).not.toContain("bosta");
-    expect(answers).not.toContain("olhou");
+  });
+
+  it("permite verbos como respostas", () => {
+    const answers = new Set(answersData);
+
+    expect(answers).toContain("beija");
+    expect(answers).toContain("olhou");
   });
 
   it("mantem respostas dentro da base valida do lexico", () => {

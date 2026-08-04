@@ -22,7 +22,7 @@ WORD_LENGTH = 5
 DEFAULT_ANSWERS_LIMIT: int | None = None
 DEFAULT_MIN_ANSWERS = 5000
 FSERB_LEXICON_NAMES = frozenset({"lexico", "fserb-pt-br-lexico.txt"})
-FSERB_SOURCE_MARKERS = ("lexico",)
+FSERB_SOURCE_MARKERS = ("lexico", "verbos", "conjugacoes")
 ANSWER_EXCLUSION_MARKERS = (
     "conjug",
     "verbos",

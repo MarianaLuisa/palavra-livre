@@ -1,7 +1,7 @@
 # Uma palavra por linha. As palavras daqui podem existir na base bruta,
 # mas nunca devem ser sorteadas como respostas.
 #
-# Use para nomes proprios, lugares, estrangeirismos, verbos conjugados
+# Use para nomes proprios, lugares, estrangeirismos
 # ou termos que deixam a partida ruim.
 apolo
 adobe
@@ -13,7 +13,6 @@ amapa
 artur
 avila
 bauru
-beija
 blues
 borba
 bosta
@@ -65,7 +64,6 @@ ninja
 nylon
 omega
 oscar
-olhou
 paulo
 paris
 petra
@@ -116,7 +114,6 @@ flash
 login
 mario
 sousa
-terem
 celso
 diogo
 egito
@@ -125,7 +122,6 @@ julio
 lucia
 marte
 mauro
-pague
 tesao
 viana
 apart

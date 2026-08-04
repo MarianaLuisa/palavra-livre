@@ -6,13 +6,15 @@ Fonte principal atual:
 
 - `fserb/pt-br`, corpus PT-BR sob licenca MIT.
 - Repositorio: https://github.com/fserb/pt-br/tree/master
-- Arquivo usado: `lexico`.
+- Arquivos usados: `lexico`, `listas/verbos` e `conjugacoes`.
 
-Arquivo esperado pelo script:
+Arquivos esperados pelo script:
 
 - `fserb-pt-br-lexico.txt`
+- `fserb-lista-verbos.txt`
+- `fserb-pt-br-conjugacoes.txt`
 
-Depois de colocar ou atualizar o arquivo, rode na raiz do projeto:
+Depois de colocar ou atualizar os arquivos, rode na raiz do projeto:
 
 ```bash
 python scripts/preparar-palavras.py
