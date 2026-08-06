@@ -1,4 +1,4 @@
-﻿# Palavra Livre
+# Palavra Livre
 
 Palavra Livre e um jogo web em PT-BR de adivinhar palavras de 5 letras. Ele se inspira no formato de jogos como Wordle/Termo, mas tem uma proposta propria: nao existe limite diario. O jogador pode clicar em **Jogar novamente** e iniciar novas partidas quantas vezes quiser.
 
@@ -83,15 +83,20 @@ Fonte principal atual:
 
 - `fserb/pt-br`: corpus PT-BR sob licenca MIT, a mesma fonte indicada pelo Termo.
 - Arquivos usados para a base do jogo: `lexico`, `listas/verbos`, `conjugacoes` e `icf`.
+- `hermitdave/FrequencyWords`: lista de frequencia PT-BR derivada do OpenSubtitles, usada somente como sinal auxiliar de palavras comuns na geracao das respostas.
+- `wordfreq`: biblioteca usada apenas no script de preparacao para cortar respostas raras demais.
+- `word-sources/termo-respostas-historicas.txt`: lista publica de respostas historicas do Termo, usada como nucleo curado quando presente.
 
 Fluxo:
 
 1. Baixe os arquivos `lexico`, `listas/verbos`, `conjugacoes` e `icf` do repositorio `fserb/pt-br` para `word-sources/`.
 2. Salve como `fserb-pt-br-lexico.txt`, `fserb-lista-verbos.txt`, `fserb-pt-br-conjugacoes.txt` e `fserb-pt-br-icf.txt`.
-3. Ajuste `scripts/blocklist.txt` para termos que nao devem entrar nem como tentativa.
-4. Ajuste `scripts/answer-blocklist.txt` para palavras que nao devem ser sorteadas como resposta.
-5. Ajuste `scripts/answers-curadas.txt`, se quiser priorizar respostas manuais.
-6. Rode:
+3. Opcionalmente, baixe `pt_br_50k.txt` de `hermitdave/FrequencyWords` e salve como `word-sources/frequencywords-pt_br-50k.txt`.
+4. Opcionalmente, salve uma lista historica/curada do Termo como `word-sources/termo-respostas-historicas.txt`.
+5. Ajuste `scripts/blocklist.txt` para termos que nao devem entrar nem como tentativa.
+6. Ajuste `scripts/answer-blocklist.txt` para palavras que nao devem ser sorteadas como resposta.
+7. Ajuste `scripts/answers-curadas.txt`, se quiser priorizar respostas manuais.
+8. Rode:
 
 ```bash
 python scripts/preparar-palavras.py
@@ -99,12 +104,12 @@ python scripts/preparar-palavras.py
 
 O script normaliza acentos, transforma `ç` em `c`, remove duplicadas, filtra apenas palavras de 5 letras e gera os JSONs finais. As tentativas aceitas ficam normalizadas em `validWords.json`; as respostas preservam a grafia da fonte quando houver acento ou cedilha, como `coçar`, `açude` e `órgão`. Na comparação, o jogo continua ignorando acentos e cedilha, entao digitar `cocar` pode acertar e revelar `coçar`.
 
-As tentativas aceitas saem da uniao de `lexico`, `verbos`, `conjugacoes` e `icf`. As respostas usam essa mesma base, mas filtram palavras automaticas por pontuacao ICF maxima `17.0`, priorizando termos mais comuns. A blocklist manual continua removendo termos que nao devem ser sorteados.
+As tentativas aceitas saem da uniao de `lexico`, `verbos`, `conjugacoes`, `icf` e listas curadas locais. As respostas sao mais restritas: usam a lista historica/curada do Termo como nucleo, complementam apenas com palavras que passam por cortes de frequencia (`wordfreq`/`FrequencyWords`) e respeitam `scripts/answer-blocklist.txt`.
 
 Base atual gerada:
 
-- `validWords.json`: 11.301 palavras aceitas.
-- `answers.json`: 5.817 respostas sorteaveis.
+- `validWords.json`: 11.389 palavras aceitas.
+- `answers.json`: 2.375 respostas sorteaveis.
 
 Veja detalhes em [WORDS_SOURCE.md](WORDS_SOURCE.md).
 ## GitHub

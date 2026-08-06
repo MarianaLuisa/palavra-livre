@@ -9,7 +9,7 @@ import { StatsModal } from "./components/StatsModal";
 import { useGame } from "./hooks/useGame";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { GameMode, ThemeMode } from "./types/game";
-import { THEME_STORAGE_KEY } from "./utils/constants";
+import { MODES, THEME_STORAGE_KEY } from "./utils/constants";
 
 export function App() {
   const game = useGame();
@@ -97,6 +97,9 @@ export function App() {
       : game.status === "playing"
         ? "Termine a partida"
         : `Complete os 4 modos (${game.cycleProgress.completed}/${game.cycleProgress.total})`;
+  const nextModes = MODES.filter(
+    (mode) => !game.cycleProgress.completedModes.includes(mode),
+  );
 
   return (
     <div className="app-shell">
@@ -179,7 +182,9 @@ export function App() {
         boards={game.boards}
         canPlayAgain={game.canRestart}
         playAgainLabel={restartLabel}
+        nextModes={nextModes}
         onPlayAgain={handlePlayAgain}
+        onSelectMode={handleChangeMode}
         onClose={() => setEndGameOpen(false)}
       />
       <RulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />

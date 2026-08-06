@@ -3,29 +3,30 @@
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  background: #171927;
-  color: #fbf7ff;
-  --background: #171927;
-  --surface: #232538;
-  --surface-strong: #2c2f46;
-  --surface-soft: #1c1e2e;
-  --line: #3e4258;
-  --line-strong: #5c6078;
-  --text: #fbf7ff;
-  --muted: #bfc2d4;
-  --green: #5f9f6d;
-  --yellow: #c4a052;
-  --gray: #545766;
-  --accent: #a88be0;
-  --accent-strong: #765bb8;
-  --accent-warm: #8a69c8;
-  --danger: #d96f7b;
-  --key-bg: #202434;
-  --key-bg-strong: #2a3044;
-  --key-line: #454b61;
-  --key-action: #765bb8;
-  --key-action-strong: #876bd0;
-  --shadow: 0 18px 36px rgb(7 8 15 / 42%);
+  background: #6f6066;
+  color: #fffaf7;
+  --background: #6f6066;
+  --surface: #62545b;
+  --surface-strong: #55494f;
+  --surface-soft: #66585f;
+  --line: #7a6a71;
+  --line-strong: #9a8c94;
+  --text: #fffaf7;
+  --muted: #ddcfd6;
+  --green: #42a99b;
+  --yellow: #d9b86b;
+  --gray: #30282e;
+  --accent: #ddd0da;
+  --accent-strong: #776278;
+  --accent-warm: #62515e;
+  --danger: #d98285;
+  --key-bg: #463b42;
+  --key-bg-strong: #51454c;
+  --key-used-bg: #51464d;
+  --key-line: #62565d;
+  --key-action: #463b42;
+  --key-action-strong: #51454c;
+  --shadow: 0 18px 36px rgb(36 30 36 / 32%);
 }
 
 :root[data-theme="light"] {
@@ -99,7 +100,7 @@ button:focus-visible {
   justify-content: center;
   padding: 0.35rem clamp(0.55rem, 2vw, 1.25rem);
   border-bottom: 1px solid var(--line);
-  background: #141622;
+  background: #1f2022;
   position: sticky;
   top: 0;
   z-index: 15;
@@ -115,7 +116,7 @@ button:focus-visible {
   padding: 0.25rem 0.35rem 0.25rem 0.25rem;
   border-radius: 0.55rem;
   color: var(--text);
-  background: #202233;
+  background: #302a30;
   border: 1px solid var(--line);
   cursor: pointer;
 }
@@ -171,8 +172,8 @@ button:focus-visible {
   gap: 0.6rem;
   padding: 0.7rem;
   border-radius: 0.55rem;
-  background: #202233;
-  border: 1px solid #4b4f66;
+  background: #5b4e55;
+  border: 1px solid #7a6a71;
   box-shadow: var(--shadow);
   position: absolute;
   top: calc(100% + 0.4rem);
@@ -256,8 +257,8 @@ button:focus-visible {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   justify-items: center;
-  gap: clamp(0.18rem, 0.55vh, 0.45rem);
-  padding: clamp(0.25rem, 0.75vh, 0.55rem) clamp(0.65rem, 2.4vw, 2.1rem);
+  gap: clamp(0.32rem, 0.95vh, 0.78rem);
+  padding: clamp(0.45rem, 1.05vh, 0.85rem) clamp(0.55rem, 1.7vw, 1.45rem);
   overflow: hidden;
 }
 
@@ -277,7 +278,7 @@ button:focus-visible {
   padding: 0.35rem;
   border-radius: 0.5rem;
   color: var(--muted);
-  background: #191b29;
+  background: #5f5159;
   border: 1px solid var(--line);
   box-shadow: none;
   transition:
@@ -307,7 +308,7 @@ button:focus-visible {
 
 .mode-button.completed:not(.active) {
   color: var(--text);
-  background: #242739;
+  background: #5b4e55;
   border-color: var(--line-strong);
 }
 
@@ -330,7 +331,7 @@ button:focus-visible {
   min-height: clamp(2.55rem, 5.4vh, 3rem);
   border-radius: 0.5rem;
   background: var(--surface-strong);
-  border: 1px solid #4b4f66;
+  border: 1px solid #7a6a71;
 }
 
 .status-panel > div {
@@ -370,37 +371,38 @@ button:focus-visible {
   height: 100%;
   min-height: 0;
   display: grid;
-  gap: clamp(0.65rem, 2.2vw, 2.6rem);
+  gap: clamp(0.55rem, 1.55vw, 2rem);
   align-items: stretch;
   align-content: stretch;
   justify-content: center;
   overflow: hidden;
-  --tile-size: clamp(2.65rem, min(8.2vw, 7.6vh), 4.6rem);
-  --tile-gap: clamp(0.22rem, 0.55vw, 0.45rem);
-  --row-gap: clamp(0.22rem, 0.62vh, 0.45rem);
+  --tile-size: clamp(2.85rem, min(8.8vw, 8.1vh), 5rem);
+  --tile-gap: clamp(0.1rem, 0.28vw, 0.24rem);
+  --row-gap: clamp(0.16rem, 0.48vh, 0.34rem);
 }
 
 .board-grid.count-1 {
-  max-width: 30rem;
+  max-width: 34rem;
   grid-template-columns: minmax(14rem, max-content);
   align-content: center;
 }
 
 .board-grid.count-2 {
-  max-width: 70rem;
+  max-width: 78rem;
   grid-template-columns: repeat(2, max-content);
   align-content: center;
-  --tile-size: clamp(2.25rem, min(5.6vw, 6.8vh), 4.1rem);
+  --tile-size: clamp(2.65rem, min(6vw, 7.35vh), 4.75rem);
 }
 
 .board-grid.count-4 {
-  max-width: 118rem;
+  max-width: 126rem;
   grid-template-columns: repeat(4, max-content);
   grid-template-rows: minmax(0, 1fr);
   align-content: center;
-  --tile-size: clamp(2.15rem, min(3.35vw, 6vh), 4rem);
-  --tile-gap: clamp(0.16rem, 0.36vw, 0.34rem);
-  --row-gap: clamp(0.16rem, 0.44vh, 0.34rem);
+  gap: clamp(1.15rem, 2.4vw, 3.25rem);
+  --tile-size: clamp(2.35rem, min(3.72vw, 6.75vh), 4.65rem);
+  --tile-gap: clamp(0.08rem, 0.18vw, 0.18rem);
+  --row-gap: clamp(0.1rem, 0.28vh, 0.22rem);
 }
 
 .board-grid.count-6 {
@@ -410,9 +412,9 @@ button:focus-visible {
   align-items: center;
   align-content: center;
   gap: clamp(0.65rem, 1.15vw, 1.45rem);
-  --tile-size: clamp(2rem, min(2.35vw, 5.1vh), 3.15rem);
-  --tile-gap: clamp(0.14rem, 0.2vw, 0.3rem);
-  --row-gap: clamp(0.14rem, 0.25vh, 0.3rem);
+  --tile-size: clamp(2.25rem, min(2.72vw, 5.6vh), 3.55rem);
+  --tile-gap: clamp(0.06rem, 0.12vw, 0.18rem);
+  --row-gap: clamp(0.1rem, 0.2vh, 0.24rem);
 }
 
 .board {
@@ -479,6 +481,7 @@ button:focus-visible {
   display: grid;
   grid-template-columns: repeat(5, var(--tile-size));
   gap: var(--tile-gap);
+  perspective: 52rem;
 }
 
 .row.evaluated {
@@ -490,14 +493,15 @@ button:focus-visible {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border-radius: 0.28rem;
-  border: 2px solid #404559;
-  background: #1a1c2a;
+  border-radius: 0.42rem;
+  border: 0;
+  background: #66585f;
   color: var(--text);
-  font-size: clamp(0.95rem, calc(var(--tile-size) * 0.7), 2.45rem);
-  font-weight: 1000;
+  font-family: "Arial Rounded MT Bold", "Arial Black", Arial, Helvetica, sans-serif;
+  font-size: clamp(0.92rem, calc(var(--tile-size) * 0.62), 2.35rem);
+  font-weight: 900;
   line-height: 1;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -507,22 +511,29 @@ button.tile {
   cursor: pointer;
 }
 
+.tile:focus,
+.tile:focus-visible {
+  outline: none;
+}
+
 .tile.editable:hover {
-  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px #7d7177;
 }
 
 .tile.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent);
+  box-shadow: inset 0 0 0 2px #a99aa3;
 }
 
 .row.current .tile {
-  border-color: #666b83;
+  box-shadow: inset 0 0 0 1px #746870;
 }
 
 .row.current .tile:not(:empty) {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: inset 0 0 0 1px #82757d;
+}
+
+.row.current .tile.active {
+  box-shadow: inset 0 0 0 2px #a99aa3;
 }
 
 .tile.correct,
@@ -558,6 +569,7 @@ button.tile {
   animation-fill-mode: both;
   animation-timing-function: cubic-bezier(0.2, 0.7, 0.25, 1);
   transform-style: preserve-3d;
+  transform-origin: center;
   will-change: transform, background, border-color;
 }
 
@@ -576,7 +588,7 @@ button.tile {
 .keyboard {
   width: min(100% - 1rem, 68rem);
   display: grid;
-  gap: clamp(0.22rem, 0.75vh, 0.42rem);
+  gap: clamp(0.16rem, 0.58vh, 0.32rem);
   margin: 0 auto;
   padding: clamp(0.3rem, 0.75vh, 0.58rem) 0.25rem clamp(0.38rem, 0.9vh, 0.7rem);
   flex: 0 0 auto;
@@ -585,7 +597,7 @@ button.tile {
 .keyboard-row {
   display: flex;
   justify-content: center;
-  gap: clamp(0.26rem, 0.7vw, 0.48rem);
+  gap: clamp(0.18rem, 0.52vw, 0.34rem);
 }
 
 .keyboard-key {
@@ -604,18 +616,34 @@ button.tile {
 }
 
 .keyboard-key.empty {
-  color: #f2eef8;
+  color: #fffaf7;
   background: var(--key-bg);
   border-color: var(--key-line);
 }
 
+.keyboard-key.absent {
+  color: rgb(255 250 247 / 24%);
+  background: var(--key-used-bg);
+  border-color: transparent;
+  opacity: 0.74;
+}
+
 .keyboard-key.action-key {
-  width: clamp(5.1rem, 13vw, 8rem);
+  width: clamp(6.2rem, 15vw, 10rem);
   padding: 0 0.35rem;
   color: #fff;
   background: var(--key-action);
   border-color: var(--key-action);
   font-size: clamp(0.78rem, 1.8vw, 1rem);
+}
+
+.keyboard-key.backspace-key {
+  width: clamp(2.8rem, 6vw, 4.15rem);
+  color: #fff;
+  background: var(--key-action);
+  border-color: var(--key-action);
+  font-size: clamp(1rem, 2.4vw, 1.3rem);
+  line-height: 1;
 }
 
 .keyboard-key:hover,
@@ -628,7 +656,8 @@ button.tile {
   background: var(--key-bg-strong);
 }
 
-.keyboard-key.action-key:hover {
+.keyboard-key.action-key:hover,
+.keyboard-key.backspace-key:hover {
   background: var(--key-action-strong);
   border-color: var(--key-action-strong);
 }
@@ -639,7 +668,7 @@ button.tile {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: #11131d;
+  background: rgb(31 28 31 / 22%);
   z-index: 20;
 }
 
@@ -652,9 +681,16 @@ button.tile {
   gap: 1rem;
   padding: 1.35rem;
   border-radius: 0.5rem;
-  background: #232538;
-  border: 1px solid #4b4f66;
+  background: #5b4e55;
+  border: 1px solid #7a6a71;
   box-shadow: var(--shadow);
+}
+
+.result-modal {
+  width: min(calc(100vw - 1.5rem), 34rem);
+  align-self: center;
+  background: #5b4e55;
+  box-shadow: 0 1.25rem 3.5rem rgb(28 22 28 / 36%);
 }
 
 .wide-modal {
@@ -701,6 +737,34 @@ button.tile {
   border: 1px solid var(--line);
   color: var(--text);
   font-weight: 900;
+}
+
+.next-mode-panel {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border-radius: 0.45rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+.next-mode-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.next-mode-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.45rem;
+}
+
+.next-mode-actions .secondary-button {
+  min-height: 2.45rem;
+  background: #4d4249;
 }
 
 .modal-actions {
@@ -862,21 +926,28 @@ button.tile {
 @keyframes reveal-correct {
   0%,
   40% {
-    transform: rotateX(0deg);
+    transform: rotateY(0deg);
     color: var(--text);
     background: var(--surface-soft);
     border-color: var(--line);
   }
 
-  52% {
-    transform: rotateX(86deg) scale(0.98);
+  50% {
+    transform: rotateY(88deg) scale(0.96);
+    color: var(--text);
+    background: var(--surface-soft);
+    border-color: var(--line);
+  }
+
+  51% {
+    transform: rotateY(-88deg) scale(0.96);
     color: #fff;
     background: var(--green);
     border-color: var(--green);
   }
 
   100% {
-    transform: rotateX(0deg) scale(1);
+    transform: rotateY(0deg) scale(1);
     color: #fff;
     background: var(--green);
     border-color: var(--green);
@@ -886,21 +957,28 @@ button.tile {
 @keyframes reveal-present {
   0%,
   40% {
-    transform: rotateX(0deg);
+    transform: rotateY(0deg);
     color: var(--text);
     background: var(--surface-soft);
     border-color: var(--line);
   }
 
-  52% {
-    transform: rotateX(86deg) scale(0.98);
+  50% {
+    transform: rotateY(88deg) scale(0.96);
+    color: var(--text);
+    background: var(--surface-soft);
+    border-color: var(--line);
+  }
+
+  51% {
+    transform: rotateY(-88deg) scale(0.96);
     color: #fff;
     background: var(--yellow);
     border-color: var(--yellow);
   }
 
   100% {
-    transform: rotateX(0deg) scale(1);
+    transform: rotateY(0deg) scale(1);
     color: #fff;
     background: var(--yellow);
     border-color: var(--yellow);
@@ -910,21 +988,28 @@ button.tile {
 @keyframes reveal-absent {
   0%,
   40% {
-    transform: rotateX(0deg);
+    transform: rotateY(0deg);
     color: var(--text);
     background: var(--surface-soft);
     border-color: var(--line);
   }
 
-  52% {
-    transform: rotateX(86deg) scale(0.98);
+  50% {
+    transform: rotateY(88deg) scale(0.96);
+    color: var(--text);
+    background: var(--surface-soft);
+    border-color: var(--line);
+  }
+
+  51% {
+    transform: rotateY(-88deg) scale(0.96);
     color: #fff;
     background: var(--gray);
     border-color: var(--gray);
   }
 
   100% {
-    transform: rotateX(0deg) scale(1);
+    transform: rotateY(0deg) scale(1);
     color: #fff;
     background: var(--gray);
     border-color: var(--gray);
@@ -952,7 +1037,7 @@ button.tile {
     grid-template-columns: repeat(3, max-content);
     grid-template-rows: repeat(2, minmax(0, 1fr));
     --tile-size: clamp(1.05rem, min(3.2vw, 2.45vh), 1.55rem);
-    --tile-gap: clamp(0.08rem, 0.22vw, 0.18rem);
+    --tile-gap: clamp(0.06rem, 0.16vw, 0.14rem);
     --row-gap: clamp(0.08rem, 0.22vh, 0.18rem);
   }
 }
@@ -994,7 +1079,7 @@ button.tile {
     grid-template-rows: repeat(3, minmax(0, 1fr));
     gap: clamp(0.28rem, 1.1vh, 0.55rem) clamp(0.75rem, 4vw, 1.35rem);
     --tile-size: clamp(0.78rem, min(4.6vw, 1.65vh), 1.05rem);
-    --tile-gap: 0.07rem;
+    --tile-gap: 0.05rem;
     --row-gap: 0.07rem;
   }
 

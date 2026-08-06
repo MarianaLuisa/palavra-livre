@@ -12,7 +12,9 @@ type EndGameModalProps = {
   boards: BoardState[];
   canPlayAgain: boolean;
   playAgainLabel: string;
+  nextModes: GameMode[];
   onPlayAgain: () => void;
+  onSelectMode: (mode: GameMode) => void;
   onClose: () => void;
 };
 
@@ -24,7 +26,9 @@ export function EndGameModal({
   boards,
   canPlayAgain,
   playAgainLabel,
+  nextModes,
   onPlayAgain,
+  onSelectMode,
   onClose,
 }: EndGameModalProps) {
   const [copyMessage, setCopyMessage] = useState("");
@@ -87,6 +91,23 @@ export function EndGameModal({
             </span>
           ))}
         </div>
+        {nextModes.length > 0 ? (
+          <div className="next-mode-panel">
+            <p>Continue o ciclo</p>
+            <div className="next-mode-actions">
+              {nextModes.map((nextMode) => (
+                <button
+                  className="secondary-button"
+                  key={nextMode}
+                  type="button"
+                  onClick={() => onSelectMode(nextMode)}
+                >
+                  {MODE_CONFIG[nextMode].label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div className="modal-actions">
           <button
             className="primary-button"

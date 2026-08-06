@@ -1,0 +1,68 @@
+# Palavra Livre - candidatas PENDENTES de respostas
+# Faixa wordfreq Zipf: 2.00 a 2.24
+# Total: 241
+# Deixe neste arquivo apenas as palavras que voce aprovar e me pe?a para integrar.
+# Formato: palavra # score
+
+
+beiço # 2.24
+bugio # 2.24
+cerol # 2.24
+fóton # 2.24
+
+uivar # 2.24
+
+metil # 2.23
+miado # 2.23
+
+valão # 2.23
+
+fiapo # 2.22
+
+
+dengo # 2.20
+dopar # 2.20
+
+reúso # 2.20
+salga # 2.20
+
+
+quina # 2.18
+
+diaba # 2.17
+fitar # 2.17
+
+suflê # 2.17
+
+seder # 2.16
+
+zonal # 2.16
+
+
+bicar # 2.13
+
+sonsa # 2.13
+
+hepta # 2.12
+locar # 2.12
+
+laçar # 2.11
+
+
+
+
+mofos # 2.08
+
+sarja # 2.08
+sonso # 2.08
+
+fervo # 2.07
+
+
+mofar # 2.05
+
+
+pifar # 2.04
+
+
+mutar # 2.01

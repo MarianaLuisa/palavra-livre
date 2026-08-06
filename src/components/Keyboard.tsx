@@ -12,18 +12,6 @@ export function Keyboard({ keyStatuses, disabled = false, onKey }: KeyboardProps
     <section className="keyboard" aria-label="Teclado virtual">
       {KEYBOARD_ROWS.map((row, rowIndex) => (
         <div className="keyboard-row" key={row}>
-          {rowIndex === 2 ? (
-            <button
-              className="keyboard-key action-key"
-              type="button"
-              disabled={disabled}
-              onClick={() => onKey("Backspace")}
-              aria-label="Apagar letra"
-            >
-              Apagar
-            </button>
-          ) : null}
-
           {[...row].map((letter) => (
             <button
               className={`keyboard-key ${keyStatuses[letter] ?? "empty"}`}
@@ -36,6 +24,19 @@ export function Keyboard({ keyStatuses, disabled = false, onKey }: KeyboardProps
               {letter.toUpperCase()}
             </button>
           ))}
+
+          {rowIndex === 1 ? (
+            <button
+              className="keyboard-key backspace-key"
+              type="button"
+              disabled={disabled}
+              onClick={() => onKey("Backspace")}
+              aria-label="Apagar letra"
+              title="Apagar"
+            >
+              ⌫
+            </button>
+          ) : null}
 
           {rowIndex === 2 ? (
             <button

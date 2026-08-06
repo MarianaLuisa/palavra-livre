@@ -32,18 +32,18 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
         <div className="rules-list">
           <p>Digite uma palavra de 5 letras por rodada.</p>
           <p>A mesma tentativa vale para todos os tabuleiros ativos.</p>
-          <p>Acentos sao ignorados, e c cedilha vale como c.</p>
+          <p>Acentos são ignorados, e c cedilha vale como c.</p>
           <div className="rule-swatch">
             <span className="tile correct">A</span>
-            <p>Letra certa na posicao certa.</p>
+            <p>Letra certa na posição certa.</p>
           </div>
           <div className="rule-swatch">
             <span className="tile present">A</span>
-            <p>Letra existe, mas em outra posicao.</p>
+            <p>Letra existe, mas em outra posição.</p>
           </div>
           <div className="rule-swatch">
             <span className="tile absent">A</span>
-            <p>Letra nao aparece na palavra.</p>
+            <p>Letra não aparece na palavra.</p>
           </div>
         </div>
       </section>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { ThemeMode } from "../types/game";
 
 type HeaderProps = {
@@ -49,6 +49,14 @@ export function Header({
     setMenuOpen(false);
   }
 
+  function closeAfterModeClick(event: MouseEvent<HTMLDivElement>) {
+    const target = event.target;
+
+    if (target instanceof Element && target.closest(".mode-button")) {
+      setMenuOpen(false);
+    }
+  }
+
   return (
     <header className="app-header" ref={headerRef}>
       <button
@@ -72,6 +80,7 @@ export function Header({
       <div
         className={menuOpen ? "header-menu open" : "header-menu"}
         aria-hidden={!menuOpen}
+        onClick={closeAfterModeClick}
       >
         {children}
         <nav className="header-actions" aria-label="Acoes do jogo">

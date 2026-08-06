@@ -51,6 +51,7 @@ export function Tile({
         style={style}
         aria-label={`${label}. Selecionar posicao ${index + 1}`}
         aria-pressed={isActive}
+        onMouseDown={(event) => event.preventDefault()}
         onClick={() => onSelect?.(index)}
       >
         {displayLetter}

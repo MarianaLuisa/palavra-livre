@@ -15,18 +15,22 @@ DEFAULT_INPUT_PATH = PROJECT_ROOT / "palavras-originais.txt"
 DEFAULT_BLOCKLIST_PATH = PROJECT_ROOT / "scripts" / "blocklist.txt"
 DEFAULT_ANSWER_BLOCKLIST_PATH = PROJECT_ROOT / "scripts" / "answer-blocklist.txt"
 DEFAULT_CURATED_ANSWERS_PATH = PROJECT_ROOT / "scripts" / "answers-curadas.txt"
+DEFAULT_TERMO_ANSWERS_PATH = PROJECT_ROOT / "word-sources" / "termo-respostas-historicas.txt"
 DEFAULT_VALID_OUTPUT_PATH = PROJECT_ROOT / "src" / "data" / "validWords.json"
 DEFAULT_ANSWERS_OUTPUT_PATH = PROJECT_ROOT / "src" / "data" / "answers.json"
 WORD_PATTERN = re.compile(r"^[^\W\d_]+$", re.UNICODE)
 WORD_LENGTH = 5
 DEFAULT_ANSWERS_LIMIT: int | None = None
-DEFAULT_MIN_ANSWERS = 5000
+DEFAULT_MIN_ANSWERS = 1500
 DEFAULT_MAX_ANSWER_ICF_SCORE = 17.0
+DEFAULT_MIN_ANSWER_ZIPF_SCORE = 3.0
+DEFAULT_EXTRA_VALID_ZIPF_SCORE = 4.0
+DEFAULT_TERMO_MIN_ZIPF_SCORE = 3.5
+DEFAULT_AUTOMATIC_ANSWERS_LIMIT = 1800
 FSERB_LEXICON_NAMES = frozenset({"lexico", "fserb-pt-br-lexico.txt"})
 FSERB_SOURCE_MARKERS = ("lexico", "verbos", "conjugacoes", "icf")
+FREQUENCY_SOURCE_MARKERS = ("frequencywords", "frequencia", "frequency")
 ANSWER_EXCLUSION_MARKERS = (
-    "conjug",
-    "verbos",
     "paises",
     "estadosbr",
     "municipiosbr",
@@ -68,6 +72,7 @@ class CliOptions:
     answers_limit: int | None
     min_answers: int
     max_answer_icf_score: float
+    min_answer_zipf_score: float
 
 
 @dataclass(frozen=True)
@@ -272,6 +277,15 @@ def answer_allowlist_paths_from_options(options: CliOptions) -> list[Path]:
     )
 
 
+def curated_answer_paths_from_options(options: CliOptions) -> list[Path]:
+    paths = [options.curated_answers_path]
+
+    if DEFAULT_TERMO_ANSWERS_PATH.exists():
+        paths.append(DEFAULT_TERMO_ANSWERS_PATH)
+
+    return paths
+
+
 def affix_paths_from_options(options: CliOptions) -> list[Path]:
     if not options.source_dir.exists():
         return []
@@ -298,6 +312,19 @@ def score_paths_from_options(options: CliOptions) -> list[Path]:
         if path.is_file()
         and path.suffix.lower() in {".csv", ".txt"}
         and "icf" in path.name.lower()
+    )
+
+
+def frequency_paths_from_options(options: CliOptions) -> list[Path]:
+    if not options.source_dir.exists():
+        return []
+
+    return sorted(
+        path
+        for path in options.source_dir.iterdir()
+        if path.is_file()
+        and path.suffix.lower() in {".csv", ".txt"}
+        and any(marker in normalized_path_key(path) for marker in FREQUENCY_SOURCE_MARKERS)
     )
 
 
@@ -601,6 +628,68 @@ def read_icf_scores(paths: list[Path]) -> dict[str, float]:
     return scores
 
 
+def read_frequency_ranks(paths: list[Path]) -> dict[str, int]:
+    ranks: dict[str, int] = {}
+
+    for path in paths:
+        for index, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            stripped_line = strip_comment(line)
+
+            if stripped_line == "":
+                continue
+
+            if "|" in stripped_line:
+                _raw_rank, stripped_line = stripped_line.split("|", 1)
+
+            raw_word = stripped_line.split(None, 1)[0]
+
+            if not is_valid_raw_word(raw_word):
+                continue
+
+            normalized_word = normalize_word(raw_word)
+            ranks[normalized_word] = min(index, ranks.get(normalized_word, index))
+
+    return ranks
+
+
+def read_frequency_display_words(paths: list[Path]) -> dict[str, str]:
+    words: dict[str, str] = {}
+
+    for path in paths:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            stripped_line = strip_comment(line)
+
+            if stripped_line == "":
+                continue
+
+            if "|" in stripped_line:
+                _raw_rank, stripped_line = stripped_line.split("|", 1)
+
+            raw_word = stripped_line.split(None, 1)[0]
+
+            if is_valid_raw_word(raw_word):
+                words.setdefault(normalize_word(raw_word), display_word(raw_word))
+
+    return words
+
+
+def read_wordfreq_scores(words: dict[str, str]) -> dict[str, float]:
+    try:
+        from wordfreq import zipf_frequency
+    except ImportError:
+        return {}
+
+    scores: dict[str, float] = {}
+
+    for normalized_word, display_candidate in words.items():
+        scores[normalized_word] = max(
+            zipf_frequency(display_candidate, "pt", wordlist="best"),
+            zipf_frequency(normalized_word, "pt", wordlist="best"),
+        )
+
+    return scores
+
+
 def is_good_answer_candidate(word: str) -> bool:
     if any(letter in ANSWER_REJECTED_LETTERS for letter in word):
         return False
@@ -612,6 +701,25 @@ def is_good_answer_candidate(word: str) -> bool:
         return False
 
     return True
+
+
+def answer_sort_key(
+    word: str,
+    frequency_ranks: dict[str, int],
+    icf_scores: dict[str, float],
+    wordfreq_scores: dict[str, float],
+) -> tuple[float, int, int, float, str]:
+    frequency_rank = frequency_ranks.get(word)
+    wordfreq_score = wordfreq_scores.get(word, 0)
+    icf_score = icf_scores.get(word, float("inf"))
+
+    return (
+        -wordfreq_score,
+        0 if frequency_rank is not None else 1,
+        frequency_rank if frequency_rank is not None else sys.maxsize,
+        icf_score,
+        word,
+    )
 
 
 def write_json(path: Path, words: list[str]) -> None:
@@ -642,16 +750,77 @@ def build_words(options: CliOptions) -> WordBuildResult:
         merge_display_words(display_words, read_display_words_from_file(source_path, affix_rules))
         removed_by_filter += removed
 
+    for curated_answer_path in curated_answer_paths_from_options(options):
+        if not curated_answer_path.exists():
+            continue
+
+        words, removed = read_words_from_file(curated_answer_path, affix_rules)
+        all_words.update(words)
+        merge_display_words(
+            display_words,
+            read_display_words_from_file(curated_answer_path, affix_rules),
+        )
+        removed_by_filter += removed
+
     icf_scores = read_icf_scores(score_paths_from_options(options))
+    frequency_paths = frequency_paths_from_options(options)
+    frequency_ranks = read_frequency_ranks(frequency_paths)
+    frequency_display_words = read_frequency_display_words(frequency_paths)
 
     blocklist = read_manual_word_file(options.blocklist_path)
     answer_blocklist = read_manual_word_file(options.answer_blocklist_path)
     removed_by_blocklist = len(all_words & blocklist)
     valid_words = sorted(all_words - blocklist)
     valid_word_set = set(valid_words)
+
+    answer_candidate_paths = answer_candidate_paths_from_options(options, source_paths)
+    answer_allowlist_paths = answer_allowlist_paths_from_options(options)
+    answer_exclusions = read_base_words_from_files(answer_exclusion_paths_from_options(options))
+    lexical_answer_candidates = (
+        read_base_words_from_files(answer_candidate_paths)
+        | read_base_words_from_files(answer_allowlist_paths)
+    )
+    answer_display_words: dict[str, str] = {}
+
+    for answer_source_path in answer_candidate_paths + answer_allowlist_paths:
+        merge_display_words(
+            answer_display_words,
+            read_display_words_from_file(answer_source_path, affix_rules),
+        )
+
+    score_candidates = valid_word_set - answer_exclusions
+
+    for word in score_candidates:
+        answer_display_words.setdefault(word, display_words.get(word, word))
+
+    wordfreq_scores = read_wordfreq_scores({
+        word: frequency_display_words.get(word, answer_display_words.get(word, word))
+        for word in score_candidates
+    })
+    strong_frequency_candidates = {
+        word
+        for word in score_candidates
+        if word in frequency_ranks
+        and wordfreq_scores.get(word, 0) >= DEFAULT_EXTRA_VALID_ZIPF_SCORE
+    }
+    answer_candidates = (
+        ((lexical_answer_candidates - answer_exclusions) & valid_word_set)
+        | strong_frequency_candidates
+    )
+
+    manual_curated_answers = read_manual_word_file(options.curated_answers_path)
+    termo_curated_answers = read_manual_word_file(DEFAULT_TERMO_ANSWERS_PATH)
+    curated_answer_words = set(manual_curated_answers)
+
+    curated_answer_words.update(
+        word
+        for word in termo_curated_answers
+        if wordfreq_scores.get(word, 0) >= DEFAULT_TERMO_MIN_ZIPF_SCORE
+    )
+
     curated_answers = [
         word
-        for word in sorted(read_manual_word_file(options.curated_answers_path))
+        for word in sorted(curated_answer_words)
         if word in valid_word_set
         and word not in answer_blocklist
     ]
@@ -661,23 +830,25 @@ def build_words(options: CliOptions) -> WordBuildResult:
 
     curated_answer_set = set(curated_answers)
 
-    for word in curated_answers + valid_words:
+    automatic_answers = sorted(
+        (
+            word
+            for word in answer_candidates
+            if word not in answer_blocklist
+            and is_good_answer_candidate(word)
+            and wordfreq_scores.get(word, 0) >= options.min_answer_zipf_score
+        ),
+        key=lambda word: answer_sort_key(word, frequency_ranks, icf_scores, wordfreq_scores),
+    )[:DEFAULT_AUTOMATIC_ANSWERS_LIMIT]
+
+    for word in curated_answers + automatic_answers:
         if word in answer_blocklist:
             continue
 
         if word in seen_answers:
             continue
 
-        icf_score = icf_scores.get(word)
-
-        if (
-            word not in curated_answer_set
-            and icf_score is not None
-            and icf_score > options.max_answer_icf_score
-        ):
-            continue
-
-        answers.append(display_words.get(word, word))
+        answers.append(frequency_display_words.get(word, answer_display_words.get(word, word)))
         seen_answers.add(word)
 
     if options.answers_limit is not None:
@@ -758,6 +929,15 @@ def parse_args() -> CliOptions:
             "Valores menores priorizam palavras mais comuns."
         ),
     )
+    parser.add_argument(
+        "--min-answer-zipf-score",
+        type=float,
+        default=DEFAULT_MIN_ANSWER_ZIPF_SCORE,
+        help=(
+            "Pontuacao Zipf minima do wordfreq para respostas que nao aparecem na lista "
+            "frequencywords. Valores maiores deixam as respostas mais comuns."
+        ),
+    )
     namespace = parser.parse_args()
 
     return CliOptions(
@@ -771,6 +951,7 @@ def parse_args() -> CliOptions:
         answers_limit=namespace.answers_limit,
         min_answers=namespace.min_answers,
         max_answer_icf_score=namespace.max_answer_icf_score,
+        min_answer_zipf_score=namespace.min_answer_zipf_score,
     )
 
 
@@ -787,6 +968,10 @@ def main() -> int:
 
     if options.max_answer_icf_score < 0:
         sys.stderr.write("--max-answer-icf-score nao pode ser negativo.\n")
+        return 1
+
+    if options.min_answer_zipf_score < 0:
+        sys.stderr.write("--min-answer-zipf-score nao pode ser negativo.\n")
         return 1
 
     result = build_words(options)

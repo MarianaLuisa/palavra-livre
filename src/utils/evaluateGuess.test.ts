@@ -192,8 +192,8 @@ describe("word data", () => {
     }
   });
 
-  it("mantem pelo menos 5000 respostas sorteaveis", () => {
-    expect(answersData.length).toBeGreaterThanOrEqual(5000);
+  it("mantem uma base curada de respostas sorteaveis", () => {
+    expect(answersData.length).toBeGreaterThanOrEqual(1500);
   });
 
   it("mantem respostas livres de casos ruins conhecidos", () => {
@@ -203,22 +203,46 @@ describe("word data", () => {
     expect(answers).not.toContain("crato");
     expect(answers).not.toContain("hobby");
     expect(answers).not.toContain("bosta");
+    expect(answers).not.toContain("anona");
+    expect(answers).not.toContain("macar");
+    expect(answers).not.toContain("sande");
+    expect(answers).not.toContain("ivate");
+    expect(answers).not.toContain("gesta");
+    expect(answers).not.toContain("disna");
+    expect(answers).not.toContain("liceu");
+    expect(answers).not.toContain("parla");
+    expect(answers).not.toContain("vogar");
+    expect(answers).not.toContain("cumim");
+    expect(answers).not.toContain("opora");
+    expect(answers).not.toContain("amato");
+    expect(answers).not.toContain("touri");
+    expect(answers).not.toContain("aticu");
+    expect(answers).not.toContain("agror");
+    expect(answers).not.toContain("canon");
+    expect(answers).not.toContain("gauss");
+    expect(answers).not.toContain("recta");
+    expect(answers).not.toContain("staff");
+    expect(answers).not.toContain("crush");
+    expect(answers).not.toContain("pixel");
   });
 
-  it("permite verbos como respostas", () => {
-    const answers = new Set(answersData);
+  it("permite verbos no infinitivo como respostas e remove conjugacoes", () => {
+    const answers = new Set(answersData.map(normalizeWord));
 
-    expect(answers).toContain("beija");
-    expect(answers).toContain("olhou");
+    expect(answers).toContain("beber");
+    expect(answers).toContain("falar");
+    expect(answers).toContain("gemer");
+    expect(answers).not.toContain("beija");
+    expect(answers).not.toContain("olhou");
   });
 
-  it("inclui ICF amplo nas tentativas e corta respostas menos comuns", () => {
+  it("inclui ICF amplo nas tentativas e corta respostas sem frequencia suficiente", () => {
     const validWords = new Set(validWordsData.map(normalizeWord));
     const answers = new Set(answersData.map(normalizeWord));
 
     expect(validWords).toContain("areio");
     expect(answers).not.toContain("areio");
-    expect(answers).toContain("abaco");
+    expect(answers).toContain("carta");
   });
 
   it("mantem respostas dentro da base valida", () => {
