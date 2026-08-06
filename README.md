@@ -1,6 +1,21 @@
 # Palavra Livre
 
-Palavra Livre e um jogo web em PT-BR de adivinhar palavras de 5 letras. Ele se inspira no formato de jogos como Wordle/Termo, mas tem uma proposta propria: nao existe limite diario. O jogador pode clicar em **Jogar novamente** e iniciar novas partidas quantas vezes quiser.
+Palavra Livre e um jogo web em PT-BR de adivinhar palavras de 5 letras. Ele se inspira no formato de jogos como Wordle/Termo, mas tem uma proposta propria: nao existe limite diario.
+
+Sao **duas formas de jogar**:
+
+| | Jogo Livre | Campeonato Diario |
+| --- | --- | --- |
+| Partidas | ilimitadas | uma por dia |
+| Palavras | sorteadas no seu navegador | as mesmas para todo mundo |
+| Modalidades | escolha livre | Simples, Dueto, Quarteto e Sexteto em sequencia |
+| Login | nao precisa | nome de exibicao |
+| Ranking | nao tem | classificacao, podio e campeao do dia |
+| Backend | nenhum | Supabase (opcional na instalacao) |
+
+O Jogo Livre continua funcionando sozinho. Sem as variaveis de ambiente do
+Supabase, o app roda normalmente e o campeonato apenas informa que nao esta
+configurado.
 
 ## Modos de jogo
 
@@ -11,6 +26,53 @@ Palavra Livre e um jogo web em PT-BR de adivinhar palavras de 5 letras. Ele se i
 
 A mesma tentativa e aplicada a todos os tabuleiros ativos. Quando um tabuleiro e resolvido, ele para de receber novas linhas avaliadas.
 
+## Campeonato Diario
+
+Um campeonato oficial por dia. Todos os participantes recebem exatamente as
+mesmas 13 palavras e jogam as quatro modalidades na mesma ordem.
+
+**Fluxo:** inscricoes abrem → participante entra com o nome → sala de espera com
+contagem regressiva → inicio no horario definido → Simples → Dueto → Quarteto →
+Sexteto → apuracao → campeao, podio e classificacao completa.
+
+Nao ha eliminacao: quem vai mal em uma etapa joga as seguintes do mesmo jeito.
+
+**Pontuacao**
+
+```
+pontuacao da modalidade = palavrasResolvidas x 100
+se resolveu todas:        pontuacao += tentativasRestantes x 10
+```
+
+Maximo base: 13 palavras x 100 = **1.300 pontos**, mais ate 210 de bonus.
+Exemplo: Quarteto resolvido em 6 de 9 tentativas = 400 + 3x10 = 430 pontos.
+
+**Desempate**, nesta ordem: pontuacao total, palavras descobertas, modalidades
+concluidas, menor numero de tentativas, menor tempo total, horario de conclusao
+e, por fim, o identificador da participacao. O tempo nunca e o criterio principal.
+
+**Seguranca:** as respostas ficam apenas no servidor e so sao reveladas quando o
+tabuleiro e resolvido, quando a modalidade do participante termina ou quando o
+campeonato encerra. Pontuacao, palavras resolvidas, posicao e tempo sao
+calculados no banco; o navegador nunca envia esses valores.
+
+Detalhes de arquitetura, modelagem, RLS e decisoes tecnicas estao em
+[docs/CAMPEONATO-DIARIO.md](docs/CAMPEONATO-DIARIO.md).
+
+### Rotas
+
+| Rota | Tela |
+| --- | --- |
+| `/` | escolha entre Jogo Livre e Campeonato |
+| `/jogo-livre` | jogo tradicional ilimitado |
+| `/campeonato` | inscricao, sala de espera, rodada ou resultado |
+| `/campeonato/classificacao` | classificacao |
+| `/campeonato/historico` | campeonatos anteriores e estatisticas |
+| `/campeonato/admin` | administracao (exige permissao no banco) |
+
+Para renomear a modalidade (por exemplo para "Palavra Livre Arena"), edite
+apenas `src/championship/config.ts`. Textos, navegacao e rotas acompanham.
+
 ## Tecnologias
 
 - React
@@ -18,15 +80,92 @@ A mesma tentativa e aplicada a todos os tabuleiros ativos. Quando um tabuleiro e
 - Vite
 - CSS puro
 - Vitest
-- localStorage
+- localStorage (Jogo Livre)
+- Supabase / PostgreSQL (Campeonato Diario)
 
-O jogo nao usa backend, banco de dados ou API externa em runtime.
+O Jogo Livre nao usa backend, banco de dados ou API externa em runtime.
+O campeonato usa Supabase, e o acesso e feito com `fetch` puro: o projeto
+continua sem nenhuma dependencia de runtime alem do React.
+
+## Requisitos
+
+- Node.js 20 ou superior
+- Um projeto Supabase, apenas se quiser o Campeonato Diario
 
 ## Instalar
 
 ```bash
 npm install
 ```
+
+## Variaveis de ambiente
+
+Copie `.env.example` para `.env.local`:
+
+```bash
+VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-anon
+```
+
+Use sempre a chave **anon**, nunca a `service_role`: ela ignora RLS e daria
+acesso as respostas do campeonato.
+
+Sem essas variaveis o Jogo Livre funciona normalmente.
+
+## Configurar o Supabase
+
+1. Crie o projeto em [supabase.com](https://supabase.com).
+2. Ligue `Authentication > Providers > Anonymous sign-ins`.
+3. Aplique as migrations e a base de palavras (secao abaixo).
+4. Cadastre um administrador:
+
+```sql
+insert into championship_admins (user_id) values ('SEU-USER-UUID');
+```
+
+5. Copie URL e chave anon de `Project Settings > API` para o `.env.local`.
+
+Passo a passo completo em [supabase/README.md](supabase/README.md).
+
+## Migrations
+
+```bash
+supabase link --project-ref SEU_PROJECT_REF
+supabase db push
+```
+
+Depois carregue a base de palavras no servidor:
+
+```bash
+npm run seed:palavras
+psql "$DATABASE_URL" -f supabase/seed/palavras.sql
+```
+
+O seed espelha `src/data/validWords.json` e `src/data/answers.json` para as
+tabelas `championship_valid_words` e `championship_word_pool`. Rode de novo
+sempre que atualizar a base de palavras do jogo.
+
+## Criar o primeiro campeonato
+
+Pelo painel em `/campeonato/admin`, botao **Criar campeonato de hoje**, ou por SQL:
+
+```sql
+select cd_admin_create_championship();
+```
+
+Horarios padrao: inscricoes das 09h ate 19h55 e inicio as 20h, no fuso
+`America/Sao_Paulo`. A funcao ja cria as quatro modalidades e sorteia as 13
+palavras no servidor.
+
+As transicoes de status acontecem sozinhas, comparando `now()` do banco com os
+horarios do campeonato. Nao e necessario cron.
+
+## Acesso administrativo
+
+A tela `/campeonato/admin` fica visivel para qualquer pessoa, mas todas as acoes
+chamam `cd_require_admin()` no banco. Quem nao estiver em `championship_admins`
+recebe erro de permissao e nao consegue criar campeonato, mudar status, sortear
+palavras nem ver a lista de participantes.
 
 ## Rodar localmente
 
@@ -52,10 +191,29 @@ O Palavra Livre salva no localStorage quais respostas ja foram sorteadas. Enquan
 
 Esse historico e local ao navegador do jogador e nao depende de servidor.
 
+No Campeonato Diario a logica e outra: o sorteio roda no banco
+(`cd_draw_championship_words`), evita palavras usadas nos ultimos 60 dias e
+nunca repete uma palavra dentro do mesmo campeonato.
+
 ## Testar
 
 ```bash
 npm run test
+```
+
+A suite cobre normalizacao, letras repetidas, pontuacao, bonus, criterios de
+desempate, ordenacao da classificacao, validacao de tentativas, limites,
+avanco entre rodadas, restauracao de estado, ocultacao de respostas,
+encerramento e cenarios de duplicacao e concorrencia.
+
+Os testes de integracao rodam sobre `src/championship/localEngine.ts`, que
+espelha as regras das funcoes SQL. Assim a suite nao precisa de um Postgres.
+Ao mudar uma regra, altere os dois lados: a migration e o motor local.
+
+Checagem de tipos isolada:
+
+```bash
+npm run typecheck
 ```
 
 ## Build de producao
@@ -108,8 +266,8 @@ As tentativas aceitas saem da uniao de `lexico`, `verbos`, `conjugacoes`, `icf` 
 
 Base atual gerada:
 
-- `validWords.json`: 11.389 palavras aceitas.
-- `answers.json`: 2.375 respostas sorteaveis.
+- `validWords.json`: 11.433 palavras aceitas.
+- `answers.json`: 2.657 respostas sorteaveis.
 
 Veja detalhes em [WORDS_SOURCE.md](WORDS_SOURCE.md).
 ## GitHub
@@ -133,16 +291,35 @@ git push
 
 ## Deploy
 
+O app usa rotas reais (History API), entao o host precisa devolver
+`index.html` para qualquer caminho. Os arquivos de configuracao ja estao no
+repositorio: `vercel.json` e `public/_redirects`.
+
 ### Vercel
 
 - Framework: Vite
 - Build command: `npm run build`
 - Output directory: `dist`
+- Environment variables: `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`
+- Rewrite para SPA: ja configurado em `vercel.json`
 
 ### Netlify
 
 - Build command: `npm run build`
 - Publish directory: `dist`
+- Environment variables: `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`
+- Redirect para SPA: ja configurado em `public/_redirects`
+
+### Checklist de producao
+
+1. Migrations aplicadas (`supabase db push`).
+2. `supabase/seed/palavras.sql` carregado.
+3. Login anonimo habilitado no Supabase.
+4. Pelo menos um registro em `championship_admins`.
+5. Variaveis de ambiente com a chave **anon** (nunca a `service_role`).
+6. Campeonato do dia criado.
+7. Conferido que `select * from championship_answers` como `authenticated`
+   nao retorna nada.
 
 ## Licenca
 

@@ -60,8 +60,8 @@ python scripts/preparar-palavras.py
 
 Resultado da geracao atual:
 
-- `validWords.json`: 11.389 palavras.
-- `answers.json`: 2.375 respostas sorteaveis.
+- `validWords.json`: 11.433 palavras.
+- `answers.json`: 2.657 respostas sorteaveis.
 
 Comparacao local com a fonte:
 
