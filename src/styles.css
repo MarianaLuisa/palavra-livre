@@ -100,12 +100,12 @@
      ========================================================= */
 
   /* tecla ainda nÃ£o testada */
-  --key-bg: #4c4347;
+  --key-bg: #312a2c;
   --key-bg-strong: #584d52;
 
   /* letra jÃ¡ testada e AUSENTE: propositalmente muito mais escura
      que o plano de fundo para nÃ£o se confundir com ele */
-  --key-used-bg: #312a2c;
+  --key-used-bg: #4c4347;
 
   --key-line: #4c4347;
   --key-action: #4c4347;
@@ -207,9 +207,9 @@
 
   --danger: #a84d59;
 
-  --key-bg: #40373c;
+  --key-bg: #302a2e;
   --key-bg-strong: #4e4249;
-  --key-used-bg: #302a2e;
+  --key-used-bg: #40373c;
   --key-line: #6b5962;
   --key-action: #40373c;
   --key-action-strong: #51464c;
