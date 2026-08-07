@@ -1,29 +1,27 @@
 /* =====================================================================
    Palavra Livre - camada responsiva
    ---------------------------------------------------------------------
-   Este arquivo e carregado POR ULTIMO, depois de styles.css,
-   championship.css e account.css. Quase tudo aqui vive dentro de uma
-   media query, entao o desktop continua exatamente como estava: se uma
-   regra deste arquivo aparecer no desktop, e bug.
+   Carregado por ultimo, depois de styles.css, championship.css e
+   account.css.
 
-   Ordem dos pontos de corte, do maior para o menor:
-     1024px  tablet deitado
-      760px  tablet em pe / celular grande deitado
-      620px  celular (mesmo corte ja usado pelos outros arquivos)
-      400px  celular pequeno (iPhone SE, Android de 360px)
+   A responsividade do TABULEIRO nao mora aqui: ela vive em styles.css,
+   junto da definicao do tabuleiro, porque e parte do desenho do jogo e
+   nao um remendo de tela pequena. Aqui ficam o cabecalho, os paineis,
+   as tabelas, os modais e os menus.
 
-   Fora das media queries ficam somente as protecoes que valem em
-   qualquer largura e que nao mudam o desenho da tela.
+   Principio unico deste arquivo, e do resto do projeto:
+   conteudo em tamanho confortavel, e rolagem quando nao couber.
+   Nada aqui existe para "fazer caber" encolhendo.
    ===================================================================== */
 
 
 /* =========================================================
-   PROTECOES GERAIS (validas em qualquer largura)
+   PROTECOES GERAIS (valem em qualquer largura)
    ========================================================= */
 
-/* Um filho de grid/flex tem min-width auto por padrao: ele se recusa a
-   encolher abaixo do proprio conteudo e empurra a pagina para o lado.
-   E a causa numero um de rolagem horizontal em celular. */
+/* Um filho de grid/flex tem min-width auto: ele se recusa a encolher
+   abaixo do proprio conteudo e empurra a pagina para o lado. E a causa
+   numero um de rolagem horizontal, que aqui nunca e desejada. */
 .championship-layout > *,
 .home-layout > *,
 .progress-layout > *,
@@ -37,7 +35,6 @@
   min-width: 0;
 }
 
-/* Midia nunca estoura a caixa. */
 img,
 svg,
 video,
@@ -45,8 +42,8 @@ canvas {
   max-width: 100%;
 }
 
-/* Identificadores, e-mails e URLs sao cadeias sem espaco: sem isto,
-   um UUID sozinho define a largura minima da pagina inteira. */
+/* Identificadores, e-mails e URLs sao cadeias sem espaco: sem isto um
+   UUID sozinho define a largura minima da pagina inteira. */
 code,
 .admin-footer-note,
 .admin-footer-note code,
@@ -55,19 +52,11 @@ code,
   overflow-wrap: anywhere;
 }
 
-/* Respeita o recorte da tela (notch, ilha dinamica, barra de gestos)
-   sem mexer no espacamento de quem nao tem recorte: em telas comuns
-   os valores de env() sao zero. */
-.site-header,
-.app-header {
+/* Recorte da tela (notch, ilha dinamica, barra de gestos). Em telas sem
+   recorte os valores de env() sao zero, entao isto nao muda nada. */
+.site-header {
   padding-left: max(0.6rem, env(safe-area-inset-left));
   padding-right: max(0.6rem, env(safe-area-inset-right));
-}
-
-.championship-layout,
-.home-layout,
-.progress-layout {
-  padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
 }
 
 /* Grades fluidas: minmax(Xrem, 1fr) estoura quando o container e mais
@@ -105,8 +94,9 @@ code,
   grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
 }
 
-/* A tabela ja fica dentro de .table-scroll. Falta avisar o navegador
-   que o gesto ali e horizontal, senao o celular sequestra o toque. */
+/* Tabela larga rola dentro da propria caixa, nunca arrastando a pagina
+   junto. Este e o unico lugar do projeto com rolagem horizontal, e e
+   deliberado: uma classificacao com sete colunas nao vira uma coluna. */
 .table-scroll {
   touch-action: pan-x pan-y;
   overscroll-behavior-x: contain;
@@ -119,33 +109,17 @@ code,
    ========================================================= */
 
 @media (max-width: 1024px) {
-  /* O menu suspenso nunca pode ser mais largo que a tela. */
-  .site-control-dropdown,
-  .header-menu {
-    width: min(calc(100vw - 1rem), 46rem);
+  .site-control-dropdown {
+    width: min(calc(100% - 1rem), 46rem);
   }
 }
 
 
 /* =========================================================
-   760px - TABLET EM PE / CELULAR GRANDE
+   760px - TABLET EM PE
    ========================================================= */
 
 @media (max-width: 760px) {
-  /* Cabecalho em duas linhas: marca e conta em cima, navegacao embaixo.
-     Assim o nome do site nunca briga por espaco com o menu da conta. */
-  .site-header {
-    row-gap: 0.4rem;
-  }
-
-  .site-nav {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-  }
-
-  /* Formularios de administracao em uma so coluna: campo de data e
-     de hora lado a lado ficam pequenos demais para o dedo. */
   .admin-schedule-form {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -168,36 +142,50 @@ code,
 @media (max-width: 620px) {
   /* ---- Cabecalho ------------------------------------------------ */
 
-  /* A navegacao vira uma faixa que rola de lado em vez de quebrar em
-     tres linhas e comer metade da tela. */
+  /* A navegacao ganha a linha inteira e fica CENTRADA. Antes ela virava
+     uma faixa que rolava de lado, encostada a esquerda, para o
+     cabecalho nao passar de duas linhas: era um sintoma do modelo
+     antigo, em que altura era recurso escasso. Agora a pagina rola, o
+     cabecalho pode ocupar as linhas que precisar, e o que importa e
+     estar centrado e legivel. */
+  .site-header {
+    justify-content: center;
+    row-gap: 0.4rem;
+  }
+
   .site-nav {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 0.15rem;
-    scroll-snap-type: x proximity;
-    /* Centralizado quando cabe; encostado a esquerda quando nao cabe.
-       Sem o "safe", centralizar um conteudo maior que a caixa corta o
-       primeiro item de um jeito que nem rolando da para alcancar. */
-    justify-content: flex-start;
-    justify-content: safe center;
+    order: 3;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
-  .site-nav::-webkit-scrollbar {
-    display: none;
+  .site-control-menu {
+    order: 4;
+    width: 100%;
   }
 
-  .site-nav-link {
-    flex: 0 0 auto;
-    scroll-snap-align: start;
+  .site-control-trigger {
+    width: min(100%, 20rem);
   }
 
-  .site-brand span {
-    font-size: 0.95rem;
+  /* Ancorado no gatilho e com 100vw de largura, o menu vazava pela
+     borda sempre que o gatilho nao estava no centro exato da tela.
+     Preso a viewport, com folga dos dois lados, isso nao acontece. */
+  .site-control-dropdown {
+    position: fixed;
+    top: auto;
+    left: 0.5rem;
+    right: 0.5rem;
+    width: auto;
+    max-height: 70dvh;
+    transform: translateY(-0.25rem);
   }
 
-  /* O menu da conta abre alinhado a direita; em tela estreita ele
-     precisa caber inteiro, sem vazar pela borda. */
+  .site-control-dropdown.open {
+    transform: translateY(0);
+  }
+
   .account-dropdown {
     right: 0;
     min-width: 0;
@@ -218,8 +206,8 @@ code,
     padding: clamp(0.9rem, 4vw, 1.25rem);
   }
 
-  /* No celular o botao principal ocupa a largura toda: alvo maior e
-     leitura mais obvia do que fazer em seguida. */
+  /* Botao principal ocupa a largura toda: alvo maior e leitura mais
+     obvia do que fazer em seguida. */
   .championship-panel .primary-button,
   .championship-panel .secondary-button,
   .account-panel .primary-button,
@@ -239,8 +227,8 @@ code,
     width: 100%;
   }
 
-  /* Evita o zoom automatico do iOS ao focar um campo, que acontece
-     sempre que a fonte do campo e menor que 16px. */
+  /* O iOS aplica zoom sozinho ao focar um campo com fonte menor que
+     16px, e o zoom desloca a pagina inteira para o lado. */
   input,
   select,
   textarea {
@@ -274,7 +262,6 @@ code,
     order: 3;
   }
 
-  /* Colocacao a esquerda, nome no meio, pontos a direita. */
   .podium-place,
   .podium-place.first {
     display: grid;
@@ -323,27 +310,11 @@ code,
     padding: 0.5rem 0.45rem;
   }
 
-  .round-done-stats,
-  .transition-summary {
-    text-align: center;
-  }
-
   /* ---- Administracao -------------------------------------------- */
 
   .admin-tabs,
   .period-tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .admin-tabs::-webkit-scrollbar,
-  .period-tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .period-tab {
-    flex: 0 0 auto;
+    justify-content: center;
   }
 
   .admin-quick-grid {
@@ -358,22 +329,12 @@ code,
     width: 100%;
   }
 
-  .start-now-button {
-    min-height: 3.25rem;
-    font-size: 1rem;
-  }
-
   .admin-players-toolbar .text-input {
     flex: 1 1 100%;
     min-width: 0;
   }
 
   /* ---- Conta e progresso ---------------------------------------- */
-
-  .progress-layout,
-  .admin-layout {
-    gap: 0.75rem;
-  }
 
   .month-nav {
     gap: 0.4rem;
@@ -384,7 +345,7 @@ code,
   }
 
   /* O calendario mantem as sete colunas: uma semana quebrada deixa de
-     ser calendario. O que encolhe e o quadradinho. */
+     ser calendario. O que encolhe e o vao, nao o quadradinho. */
   .calendar-grid {
     gap: 0.18rem;
   }
@@ -415,7 +376,7 @@ code,
   /* ---- Modais ---------------------------------------------------- */
 
   /* 100dvh acompanha a barra de endereco do navegador; 90vh nao, e o
-     rodape do modal acabava escondido atras dela. O 2rem desconta o
+     rodape do modal ficava escondido atras dela. O 2rem desconta o
      padding do .modal-backdrop. */
   .modal {
     max-height: calc(100dvh - 2rem);
@@ -437,17 +398,6 @@ code,
    ========================================================= */
 
 @media (max-width: 400px) {
-  .site-brand span {
-    /* Sobra o simbolo: em 360px o nome escrito rouba o espaco do
-       menu da conta, que e o que a pessoa realmente usa. */
-    display: none;
-  }
-
-  .championship-layout,
-  .home-layout {
-    padding-inline: 0.55rem;
-  }
-
   .championship-panel,
   .account-panel {
     padding: 0.85rem;
@@ -460,14 +410,6 @@ code,
   .admin-hero-facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.45rem;
-  }
-
-  .round-progress {
-    gap: 0.25rem;
-  }
-
-  .admin-round-progress {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .calendar-weekdays span {
@@ -485,7 +427,6 @@ code,
    ========================================================= */
 
 @media (hover: none) and (pointer: coarse) {
-  /* Alvo minimo confortavel para o dedo. */
   .site-nav-link,
   .account-dropdown-item,
   .period-tab {
@@ -503,31 +444,8 @@ code,
   .primary-button:hover,
   .secondary-button:hover,
   .tool-button:hover,
+  .keyboard-key:hover,
   .start-now-button:hover:not(:disabled) {
     transform: none;
-  }
-}
-
-
-/* =========================================================
-   TELA BAIXA E DEITADA
-   ========================================================= */
-
-/* Celular deitado tem pouca altura: o cabecalho encolhe para o
-   tabuleiro e o teclado continuarem cabendo sem rolagem. */
-@media (max-height: 480px) and (orientation: landscape) {
-  .site-header {
-    min-height: 2.4rem;
-    padding-block: 0.15rem;
-  }
-
-  .site-brand .brand-mark {
-    width: 1.35rem;
-    height: 1.35rem;
-  }
-
-  .site-nav-link {
-    padding-block: 0.2rem;
-    font-size: 0.75rem;
   }
 }

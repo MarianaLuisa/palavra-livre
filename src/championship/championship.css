@@ -22,20 +22,16 @@
 /* Shell e cabecalho do site                                           */
 /* ------------------------------------------------------------------ */
 
+/* Todas as cascas seguem o mesmo modelo: coluna flexivel, altura
+   MINIMA de uma tela, sem overflow hidden. Quem rola e o documento.
+   Antes eram grades de altura fixa com overflow hidden, e tudo que
+   passasse da tela era cortado sem aviso. */
 .championship-shell,
-.home-shell {
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
+.home-shell,
 .championship-page-shell {
-  min-height: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  overflow: hidden;
-}
-
-.championship-page-shell.no-controls {
-  grid-template-rows: minmax(0, 1fr);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
 .site-header {
@@ -54,35 +50,11 @@
   z-index: 15;
 }
 
-.free-play-game-shell .site-header,
-.championship-page-shell .site-header {
-  min-height: 2.65rem;
-  padding-block: 0.25rem;
-  gap: 0.45rem;
-}
-
-.free-play-game-shell .site-brand .brand-mark,
-.championship-page-shell .site-brand .brand-mark {
-  width: 1.55rem;
-  height: 1.55rem;
-}
-
-.free-play-game-shell .site-nav-link,
-.championship-page-shell .site-nav-link {
-  padding: 0.28rem 0.58rem;
-  font-size: 0.78rem;
-}
-
-.free-play-game-shell .site-control-trigger,
-.championship-page-shell .site-control-trigger {
-  min-height: 1.95rem;
-  padding-block: 0.2rem;
-}
-
-.free-play-game-shell .site-header .tool-button,
-.championship-page-shell .site-header .tool-button {
-  min-height: 1.95rem;
-}
+/* Aqui existia um bloco que encolhia cabecalho, marca, navegacao e
+   botoes SO nas telas de jogo, para sobrar altura para o tabuleiro.
+   Era o mesmo raciocinio que espremia a peca: altura como recurso
+   escasso. Com a pagina rolando, altura deixou de ser escassa, e o
+   cabecalho pode ser identico em todas as telas. */
 
 .site-header .tool-button {
   width: auto;
@@ -320,10 +292,14 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+/* Coluna centralizada com respiro lateral consistente. O
+   `align-items: center` e o que centraliza TODOS os paineis destas
+   telas; o `width: min(...)` de cada painel define so o limite. */
 .championship-layout {
-  min-height: 0;
-  overflow-y: auto;
-  padding: clamp(0.75rem, 2vh, 1.5rem) clamp(0.65rem, 2.5vw, 1.75rem) 2.5rem;
+  width: 100%;
+  flex: 1 1 auto;
+  padding: clamp(0.75rem, 2vw, 1.5rem) clamp(0.75rem, 3vw, 1.75rem)
+    max(2.5rem, env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -332,7 +308,6 @@
 
 .championship-play-layout {
   padding: 0;
-  overflow: hidden;
   gap: 0;
 }
 
@@ -345,10 +320,10 @@
 /* ------------------------------------------------------------------ */
 
 .home-layout {
-  min-height: 0;
-  overflow-y: auto;
   width: 100%;
-  padding: clamp(1rem, 4vh, 2.5rem) clamp(0.75rem, 4vw, 2rem) 3rem;
+  flex: 1 1 auto;
+  padding: clamp(1rem, 4vw, 2.5rem) clamp(0.75rem, 4vw, 2rem)
+    max(3rem, env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -755,16 +730,18 @@
 /* Rodada em andamento                                                 */
 /* ------------------------------------------------------------------ */
 
+/* .championship-round nao e usado por nenhum componente hoje: a tela de
+   rodada monta o mesmo .game-layout do Jogo Livre. As regras que
+   sobraram com este prefixo estao mortas e ficam aqui apenas para nao
+   quebrar quem eventualmente volte a usar a classe. Sem height fixo e
+   sem overflow hidden, que era o par que cortava conteudo. */
 .championship-round {
   width: 100%;
-  height: 100%;
-  min-height: 0;
-  padding: clamp(0.32rem, 0.9vh, 0.7rem) clamp(0.55rem, 1.7vw, 1.45rem);
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  justify-items: center;
-  gap: clamp(0.24rem, 0.75vh, 0.58rem);
-  overflow: hidden;
+  padding: clamp(0.32rem, 0.9vw, 0.7rem) clamp(0.55rem, 1.7vw, 1.45rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.24rem, 0.75vw, 0.58rem);
 }
 
 .round-header {
@@ -824,11 +801,6 @@
   z-index: 1;
 }
 
-.championship-round .board-grid {
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
 
 .transition-summary {
   padding: 0.85rem 1rem;
@@ -1750,15 +1722,6 @@
   .modal.round-done {
     animation: none;
   }
-}
-
-/* ------------------------------------------------------------------ */
-/* Partida do campeonato dentro do shell do Jogo Livre                 */
-/* ------------------------------------------------------------------ */
-
-/* Mensagem, tabuleiro e teclado, nesta ordem. Nada de navegacao fixa. */
-.app-shell > .game-layout {
-  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 /* Progresso das modalidades dentro do menu suspenso. */

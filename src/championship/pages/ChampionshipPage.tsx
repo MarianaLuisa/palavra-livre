@@ -72,7 +72,14 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
     );
   }
 
-  function shell(content: ReactNode, playing = false) {
+  /**
+   * @param overlay Modais e sobreposições. Precisam ficar FORA do
+   *   <main>, porque a área de jogo é um container de consulta
+   *   (`container-type`), e isso a torna o bloco de referência de
+   *   qualquer descendente `position: fixed`. Um modal ali dentro
+   *   deixaria de cobrir a tela e passaria a cobrir só o tabuleiro.
+   */
+  function shell(content: ReactNode, playing = false, overlay: ReactNode = null) {
     const activeModeLabel =
       activeRound === null ? null : CHAMPIONSHIP_MODE_LABEL[activeRound.mode];
     const shellClassName =
@@ -94,6 +101,7 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
           controlContent={renderHeaderControls()}
         />
         <main className={playing ? "game-layout" : "championship-layout"}>{content}</main>
+        {overlay}
       </div>
     );
   }
@@ -234,30 +242,26 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
       .sort((left, right) => left.roundOrder - right.roundOrder)[0];
 
     return shell(
-      <>
-        <RoundPanel
-          round={finished}
-          rounds={state.rounds}
-          previousRound={null}
-          reviewMode
-          busy={championship.busy}
-          serverError={null}
-          onStartRound={() => undefined}
-          onSubmitAttempt={async () => false}
-        />
-        {celebration.visible ? (
-          <RoundCompletionModal
-            round={finished}
-            nextRoundLabel={
-              nextRound === undefined
-                ? null
-                : (CHAMPIONSHIP_MODE_LABEL[nextRound.mode] ?? null)
-            }
-            onClose={celebration.dismiss}
-          />
-        ) : null}
-      </>,
+      <RoundPanel
+        round={finished}
+        rounds={state.rounds}
+        previousRound={null}
+        reviewMode
+        busy={championship.busy}
+        serverError={null}
+        onStartRound={() => undefined}
+        onSubmitAttempt={async () => false}
+      />,
       true,
+      celebration.visible ? (
+        <RoundCompletionModal
+          round={finished}
+          nextRoundLabel={
+            nextRound === undefined ? null : (CHAMPIONSHIP_MODE_LABEL[nextRound.mode] ?? null)
+          }
+          onClose={celebration.dismiss}
+        />
+      ) : null,
     );
   }
 
