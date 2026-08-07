@@ -1,28 +1,30 @@
 import { useEffect, useState } from "react";
+import { useGameSync } from "../account/useGameSync";
 import { EndGameModal } from "../components/EndGameModal";
 import { GameBoardGrid } from "../components/GameBoardGrid";
-import { Header } from "../components/Header";
 import { Keyboard } from "../components/Keyboard";
 import { ModeSelector } from "../components/ModeSelector";
 import { RulesModal } from "../components/RulesModal";
+import { SiteHeader } from "../components/SiteHeader";
 import { StatsModal } from "../components/StatsModal";
-import { CHAMPIONSHIP_BRAND, CHAMPIONSHIP_ROUTES } from "../championship/config";
 import { useGame } from "../hooks/useGame";
-import { Link } from "../router/router";
 import type { GameMode, ThemeMode } from "../types/game";
 import { MODES } from "../utils/constants";
-
-type FreePlayPageProps = {
-  theme: ThemeMode;
-  onToggleTheme: () => void;
-};
 
 /**
  * Jogo Livre: exatamente a experiencia original, com partidas ilimitadas.
  * Nenhuma regra do modo tradicional foi alterada pela nova modalidade.
  */
+type FreePlayPageProps = {
+  theme: ThemeMode;
+  onToggleTheme: () => void;
+};
+
 export function FreePlayPage({ theme, onToggleTheme }: FreePlayPageProps) {
-  const game = useGame();
+  const { recordFinishedGame } = useGameSync();
+  // Visitante joga igual a sempre; com conta, cada partida concluida
+  // e registrada no servidor de forma idempotente.
+  const game = useGame({ onGameFinished: recordFinishedGame });
   const [rulesOpen, setRulesOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const [endGameOpen, setEndGameOpen] = useState(false);
@@ -100,63 +102,79 @@ export function FreePlayPage({ theme, onToggleTheme }: FreePlayPageProps) {
   const nextModes = MODES.filter(
     (mode) => !game.cycleProgress.completedModes.includes(mode),
   );
+  const headerControls = (
+    <div className="site-control-content free-play-header-controls">
+      <ModeSelector
+        activeMode={game.mode}
+        completedModes={game.cycleProgress.completedModes}
+        disabled={!game.canChangeMode}
+        onChangeMode={handleChangeMode}
+      />
+      <section className="status-panel" aria-label="Status da partida">
+        <div>
+          <span>Modo</span>
+          <strong>{game.config.label}</strong>
+        </div>
+        <div>
+          <span>Tentativas</span>
+          <strong>
+            {game.attempt}/{game.config.maxAttempts}
+          </strong>
+        </div>
+        <div>
+          <span>Resolvidas</span>
+          <strong>
+            {game.solvedCount}/{game.config.boardCount}
+          </strong>
+        </div>
+      </section>
+      <button
+        className="secondary-button compact"
+        type="button"
+        onClick={handlePlayAgain}
+        disabled={!game.canRestart}
+        title={
+          game.canRestart
+            ? "Começar novo ciclo"
+            : "Disponível depois de concluir Simples, Dueto, Quarteto e Sexteto"
+        }
+        aria-label="Jogar novamente com novas palavras"
+      >
+        {restartLabel}
+      </button>
+      <nav className="header-actions" aria-label="Ajuda e estatísticas">
+        <button
+          className="tool-button"
+          type="button"
+          onClick={() => {
+            setRulesOpen(true);
+          }}
+        >
+          Regras
+        </button>
+        <button
+          className="tool-button"
+          type="button"
+          onClick={() => {
+            setStatsOpen(true);
+          }}
+        >
+          Estatísticas
+        </button>
+      </nav>
+    </div>
+  );
 
   return (
-    <>
-      <Header
+    <div className={`free-play-game-shell boards-${game.config.boardCount}`}>
+      <SiteHeader
         theme={theme}
-        summary={`${game.config.label} · ${game.attempt}/${game.config.maxAttempts} · ${game.solvedCount}/${game.config.boardCount} · ciclo ${game.cycleProgress.completed}/${game.cycleProgress.total}`}
-        onOpenRules={() => setRulesOpen(true)}
-        onOpenStats={() => setStatsOpen(true)}
         onToggleTheme={onToggleTheme}
-      >
-        <ModeSelector
-          activeMode={game.mode}
-          completedModes={game.cycleProgress.completedModes}
-          disabled={!game.canChangeMode}
-          onChangeMode={handleChangeMode}
-        />
-        <section className="status-panel" aria-label="Status da partida">
-          <div>
-            <span>Modo</span>
-            <strong>{game.config.label}</strong>
-          </div>
-          <div>
-            <span>Tentativas</span>
-            <strong>
-              {game.attempt}/{game.config.maxAttempts}
-            </strong>
-          </div>
-          <div>
-            <span>Resolvidas</span>
-            <strong>
-              {game.solvedCount}/{game.config.boardCount}
-            </strong>
-          </div>
-          <button
-            className="secondary-button compact"
-            type="button"
-            onClick={handlePlayAgain}
-            disabled={!game.canRestart}
-            title={
-              game.canRestart
-                ? "Comecar novo ciclo"
-                : "Disponivel depois de concluir Simples, Dueto, Quarteto e Sexteto"
-            }
-            aria-label="Jogar novamente com novas palavras"
-          >
-            {restartLabel}
-          </button>
-        </section>
-        <nav className="header-actions" aria-label="Outras formas de jogar">
-          <Link className="tool-button" to={CHAMPIONSHIP_ROUTES.home}>
-            Inicio
-          </Link>
-          <Link className="tool-button" to={CHAMPIONSHIP_ROUTES.championship}>
-            {CHAMPIONSHIP_BRAND.shortName}
-          </Link>
-        </nav>
-      </Header>
+        controlLabel="Partida"
+        controlSummary={`${game.config.label} · ${game.attempt}/${game.config.maxAttempts} · ${game.solvedCount}/${game.config.boardCount}`}
+        controlContent={headerControls}
+      />
+
       <main className="game-layout">
         <div
           className={game.message ? "message visible" : "message"}
@@ -173,10 +191,12 @@ export function FreePlayPage({ theme, onToggleTheme }: FreePlayPageProps) {
           maxAttempts={game.config.maxAttempts}
           gameStatus={game.status}
           isRevealing={game.isRevealing}
+          invalidGuessId={game.invalidGuessId}
           revealingAnswers={game.revealingAnswers}
           onTileSelect={game.selectTile}
         />
       </main>
+
       <Keyboard
         keyStatuses={game.keyboardStatuses}
         disabled={game.isRevealing}
@@ -201,6 +221,7 @@ export function FreePlayPage({ theme, onToggleTheme }: FreePlayPageProps) {
         stats={game.stats}
         onClose={() => setStatsOpen(false)}
       />
-    </>
+    </div>
   );
 }
+

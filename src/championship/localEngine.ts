@@ -11,9 +11,19 @@ import {
 import { ChampionshipError } from "./errors";
 import { rankParticipants } from "./ranking";
 import { calculateRoundScore } from "./scoring";
-import type { CreateChampionshipInput, ChampionshipService } from "./service";
+import type {
+  CreateChampionshipInput,
+  ChampionshipService,
+  CreateNextChampionshipResult,
+  StartNowResult,
+} from "./service";
+import { getZonedToday } from "./timezone";
 import type {
   AdminOverview,
+  AdminPlayer,
+  AdminPlayerHistory,
+  AdminRoundAnswers,
+  ChampionshipSchedule,
   ChampionshipBoard,
   ChampionshipHistoryItem,
   ChampionshipMode,
@@ -61,6 +71,10 @@ type EngineChampionship = {
   startsAt: number;
   finishedAt: number | null;
   status: ChampionshipStatus;
+  isOfficial: boolean;
+  createdAt: number;
+  /** Instante em que as rodadas foram efetivamente liberadas. */
+  actualStartedAt: number | null;
 };
 
 type EngineRound = {
@@ -121,6 +135,16 @@ type EngineParticipantRound = {
   attempts: EngineAttempt[];
 };
 
+/**
+ * Fonte das contas para a aba de jogadores do painel.
+ * Injetavel para os testes ligarem o motor de contas ao do campeonato,
+ * sem o campeonato passar a conhecer o schema de contas.
+ */
+export type AdminPlayerSource = {
+  listPlayers(): AdminPlayer[];
+  getPlayerGames(userId: string, limit: number, offset: number): AdminPlayerHistory;
+};
+
 export type LocalEngineOptions = {
   answerPool?: string[];
   validWords?: string[];
@@ -128,6 +152,7 @@ export type LocalEngineOptions = {
   random?: () => number;
   allowLateRegistration?: boolean;
   maxDurationMinutes?: number;
+  playerSource?: AdminPlayerSource;
 };
 
 export class LocalChampionshipEngine {
@@ -137,6 +162,8 @@ export class LocalChampionshipEngine {
   private readonly participants: EngineParticipant[] = [];
   private readonly participantRounds: EngineParticipantRound[] = [];
   private readonly profiles = new Map<string, { id: string; displayName: string; createdAt: number }>();
+  private readonly admins = new Set<string>();
+  private playerSource: AdminPlayerSource | null;
   private readonly answerPool: string[];
   private readonly validWords: Set<string>;
   private readonly now: () => number;
@@ -156,6 +183,7 @@ export class LocalChampionshipEngine {
     this.now = options.now ?? (() => Date.now());
     this.random = options.random ?? Math.random;
     this.allowLateRegistration = options.allowLateRegistration ?? false;
+    this.playerSource = options.playerSource ?? null;
     this.maxDurationMs = (options.maxDurationMinutes ?? 180) * 60_000;
   }
 
@@ -186,7 +214,9 @@ export class LocalChampionshipEngine {
         (item) => item.championshipDate === championshipDate && item.status !== "CANCELLED",
       )
     ) {
-      throw new ChampionshipError("UNKNOWN", "Ja existe campeonato oficial nesta data.");
+      // Espelha o indice championships_one_official_per_date: encerrado
+      // continua ocupando a data.
+      throw new ChampionshipError("CHAMPIONSHIP_DATE_TAKEN");
     }
 
     const championship: EngineChampionship = {
@@ -199,6 +229,9 @@ export class LocalChampionshipEngine {
       startsAt,
       finishedAt: null,
       status: "SCHEDULED",
+      isOfficial: true,
+      createdAt: this.now(),
+      actualStartedAt: null,
     };
 
     this.championships.set(championship.id, championship);
@@ -214,6 +247,43 @@ export class LocalChampionshipEngine {
 
     this.drawWords(championship.id);
     return championship;
+  }
+
+  /**
+   * Cria na proxima data sem campeonato oficial ativo.
+   *
+   * Espelha cd_admin_create_next_championship: campeonato encerrado
+   * continua ocupando a data, entao a busca pula os dias ja usados.
+   */
+  createNextChampionship(): CreateNextChampionshipResult {
+    const today = getZonedToday(new Date(this.now()).toISOString(), CHAMPIONSHIP_TIMEZONE);
+    const taken = new Set(
+      [...this.championships.values()]
+        .filter((item) => item.isOfficial && item.status !== "CANCELLED")
+        .map((item) => item.championshipDate),
+    );
+
+    for (let daysAhead = 0; daysAhead <= 60; daysAhead += 1) {
+      const candidate = new Date(`${today}T12:00:00Z`);
+      candidate.setUTCDate(candidate.getUTCDate() + daysAhead);
+      const candidateDate = candidate.toISOString().slice(0, 10);
+
+      if (taken.has(candidateDate)) {
+        continue;
+      }
+
+      const created = this.createChampionship({ championshipDate: candidateDate });
+
+      return {
+        championshipId: created.id,
+        championshipDate: created.championshipDate,
+        startsAt: new Date(created.startsAt).toISOString(),
+        isToday: candidateDate === today,
+        daysAhead,
+      };
+    }
+
+    throw new ChampionshipError("NO_FREE_CHAMPIONSHIP_DATE");
   }
 
   drawWords(championshipId: string): number {
@@ -254,6 +324,15 @@ export class LocalChampionshipEngine {
     }
 
     return cursor;
+  }
+
+  /** Apenas para testes: remove o sorteio de um campeonato. */
+  clearAnswers(championshipId: string): void {
+    for (let index = this.answers.length - 1; index >= 0; index -= 1) {
+      if (this.answers[index].championshipId === championshipId) {
+        this.answers.splice(index, 1);
+      }
+    }
   }
 
   /** Apenas para testes: define respostas conhecidas. */
@@ -360,10 +439,338 @@ export class LocalChampionshipEngine {
     }
 
     if (championship.status === "IN_PROGRESS") {
+      championship.actualStartedAt = championship.actualStartedAt ?? currentTime;
       this.tryAutoFinish(championshipId);
     }
 
     return championship;
+  }
+
+  // -------------------------------------------------------------------
+  // Controles administrativos
+  // -------------------------------------------------------------------
+
+  addAdmin(userId: string): void {
+    this.admins.add(userId);
+  }
+
+  setPlayerSource(source: AdminPlayerSource): void {
+    this.playerSource = source;
+  }
+
+  /** Contas cadastradas. Nunca inclui e-mail. */
+  adminListPlayers(userId: string | null): AdminPlayer[] {
+    this.requireAdmin(userId);
+    return this.playerSource?.listPlayers() ?? [];
+  }
+
+  adminPlayerGames(
+    userId: string | null,
+    targetUserId: string,
+    limit: number,
+    offset: number,
+  ): AdminPlayerHistory {
+    this.requireAdmin(userId);
+
+    if (this.playerSource === null) {
+      return { userId: targetUserId, username: null, displayName: "", entries: [] };
+    }
+
+    return this.playerSource.getPlayerGames(targetUserId, limit, offset);
+  }
+
+  isAdmin(userId: string | null): boolean {
+    return userId !== null && this.admins.has(userId);
+  }
+
+  requireAdmin(userId: string | null): void {
+    if (!this.isAdmin(userId)) {
+      throw new ChampionshipError("FORBIDDEN");
+    }
+  }
+
+  private requireEditableSchedule(championship: EngineChampionship): void {
+    if (!["SCHEDULED", "REGISTRATION_OPEN", "WAITING"].includes(championship.status)) {
+      throw new ChampionshipError("SCHEDULE_UPDATE_NOT_ALLOWED");
+    }
+  }
+
+  /**
+   * Antecipa o inicio para agora.
+   *
+   * Espelha cd_admin_start_championship_now: mexe nos HORARIOS, porque o
+   * status e derivado deles. Preserva respostas, rodadas, participantes e
+   * tentativas. Idempotente.
+   */
+  adminStartNow(
+    userId: string | null,
+    championshipId: string,
+  ): {
+    championshipId: string;
+    status: ChampionshipStatus;
+    startsAt: string;
+    registrationClosesAt: string;
+    alreadyStarted: boolean;
+    participantCount: number;
+    answerCount: number;
+  } {
+    this.requireAdmin(userId);
+    const championship = this.requireChampionship(championshipId);
+
+    // Reavalia pelo relogio antes de decidir: o campeonato pode ter
+    // encerrado sozinho por tempo maximo desde a ultima leitura.
+    const currentStatus = this.refreshStatus(championshipId).status;
+
+    if (currentStatus === "CANCELLED") {
+      throw new ChampionshipError("CHAMPIONSHIP_CANCELLED");
+    }
+
+    if (currentStatus === "FINISHED" || currentStatus === "CALCULATING_RESULTS") {
+      throw new ChampionshipError("CHAMPIONSHIP_ALREADY_FINISHED");
+    }
+
+    const answerCount = this.answers.filter(
+      (item) => item.championshipId === championshipId,
+    ).length;
+    const participantCount = this.participants.filter(
+      (item) => item.championshipId === championshipId && item.status !== "CANCELLED",
+    ).length;
+
+    // Ja em andamento: resposta identica, sem efeito colateral.
+    if (currentStatus === "IN_PROGRESS") {
+      return {
+        championshipId,
+        status: "IN_PROGRESS",
+        startsAt: new Date(championship.startsAt).toISOString(),
+        registrationClosesAt: new Date(championship.registrationClosesAt).toISOString(),
+        alreadyStarted: true,
+        participantCount,
+        answerCount,
+      };
+    }
+
+    if (answerCount === 0) {
+      throw new ChampionshipError("CHAMPIONSHIP_WITHOUT_ANSWERS");
+    }
+
+    const moment = this.now();
+
+    championship.registrationOpensAt = Math.min(
+      championship.registrationOpensAt,
+      moment - 60_000,
+    );
+    championship.registrationClosesAt = Math.min(championship.registrationClosesAt, moment);
+    championship.startsAt = moment;
+    championship.status = "IN_PROGRESS";
+    championship.actualStartedAt = championship.actualStartedAt ?? moment;
+
+    return {
+      championshipId,
+      status: "IN_PROGRESS",
+      startsAt: new Date(championship.startsAt).toISOString(),
+      registrationClosesAt: new Date(championship.registrationClosesAt).toISOString(),
+      alreadyStarted: false,
+      participantCount,
+      answerCount,
+    };
+  }
+
+  adminUpdateSchedule(
+    userId: string | null,
+    championshipId: string,
+    schedule: { registrationOpensAt: string; registrationClosesAt: string; startsAt: string },
+  ): void {
+    this.requireAdmin(userId);
+    const championship = this.requireChampionship(championshipId);
+    this.refreshStatus(championshipId);
+    this.requireEditableSchedule(championship);
+
+    const opens = Date.parse(schedule.registrationOpensAt);
+    const closes = Date.parse(schedule.registrationClosesAt);
+    const starts = Date.parse(schedule.startsAt);
+
+    if (Number.isNaN(opens) || Number.isNaN(closes) || Number.isNaN(starts)) {
+      throw new ChampionshipError("INVALID_SCHEDULE_ORDER");
+    }
+
+    if (opens >= closes || closes > starts) {
+      throw new ChampionshipError("INVALID_SCHEDULE_ORDER");
+    }
+
+    championship.registrationOpensAt = opens;
+    championship.registrationClosesAt = closes;
+    championship.startsAt = starts;
+    this.refreshStatus(championshipId);
+  }
+
+  adminOpenRegistrationNow(userId: string | null, championshipId: string): void {
+    this.requireAdmin(userId);
+    const championship = this.requireChampionship(championshipId);
+    this.refreshStatus(championshipId);
+    this.requireEditableSchedule(championship);
+
+    const moment = this.now();
+    const closes = Math.max(championship.registrationClosesAt, moment + 60_000);
+
+    championship.registrationOpensAt = moment;
+    championship.registrationClosesAt = closes;
+    championship.startsAt = Math.max(championship.startsAt, closes);
+    this.refreshStatus(championshipId);
+  }
+
+  adminCloseRegistrationNow(userId: string | null, championshipId: string): void {
+    this.requireAdmin(userId);
+    const championship = this.requireChampionship(championshipId);
+    this.refreshStatus(championshipId);
+    this.requireEditableSchedule(championship);
+
+    const moment = this.now();
+
+    championship.registrationOpensAt = Math.min(
+      championship.registrationOpensAt,
+      moment - 60_000,
+    );
+    championship.registrationClosesAt = moment;
+    championship.startsAt = Math.max(championship.startsAt, moment);
+    this.refreshStatus(championshipId);
+  }
+
+  adminScheduleStartIn(userId: string | null, championshipId: string, minutes: number): void {
+    this.requireAdmin(userId);
+
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+      throw new ChampionshipError("INVALID_SCHEDULE_ORDER");
+    }
+
+    const championship = this.requireChampionship(championshipId);
+    this.refreshStatus(championshipId);
+    this.requireEditableSchedule(championship);
+
+    const moment = this.now();
+    const target = moment + minutes * 60_000;
+
+    championship.registrationOpensAt = Math.min(
+      championship.registrationOpensAt,
+      moment - 60_000,
+    );
+    championship.registrationClosesAt = target;
+    championship.startsAt = target;
+    this.refreshStatus(championshipId);
+  }
+
+  /** Cancela sem apagar nada: apenas muda o estado. Idempotente. */
+  adminCancel(userId: string | null, championshipId: string): void {
+    this.requireAdmin(userId);
+    const championship = this.requireChampionship(championshipId);
+
+    if (championship.status === "CANCELLED") {
+      return;
+    }
+
+    if (championship.status === "FINISHED") {
+      throw new ChampionshipError("CHAMPIONSHIP_ALREADY_FINISHED");
+    }
+
+    championship.status = "CANCELLED";
+    championship.finishedAt = championship.finishedAt ?? this.now();
+  }
+
+  adminFinish(userId: string | null, championshipId: string): void {
+    this.requireAdmin(userId);
+    const championship = this.requireChampionship(championshipId);
+
+    if (championship.status === "CANCELLED") {
+      throw new ChampionshipError("CHAMPIONSHIP_CANCELLED");
+    }
+
+    this.finishChampionship(championshipId);
+  }
+
+  /** Respostas: so depois do encerramento, mesmo para administradores. */
+  adminAnswers(
+    userId: string | null,
+    championshipId: string,
+  ): Array<{ roundId: string; mode: ChampionshipMode; roundOrder: number; answers: string[] }> {
+    this.requireAdmin(userId);
+    const championship = this.requireChampionship(championshipId);
+
+    if (this.refreshStatus(championshipId).status !== "FINISHED") {
+      throw new ChampionshipError("ANSWERS_NOT_AVAILABLE");
+    }
+
+    return this.getRounds(championship.id).map((round) => ({
+      roundId: round.id,
+      mode: round.mode,
+      roundOrder: round.roundOrder,
+      answers: this.answers
+        .filter((item) => item.roundId === round.id)
+        .sort((left, right) => left.boardIndex - right.boardIndex)
+        .map((item) => item.answer),
+    }));
+  }
+
+  /**
+   * Participacoes de um usuario, para o progresso pessoal derivar delas.
+   * O campeonato continua sendo a fonte da verdade: nada e copiado.
+   */
+  getParticipations(userId: string) {
+    return this.participants
+      .filter((participant) => participant.userId === userId)
+      .map((participant) => {
+        const championship = this.championships.get(participant.championshipId);
+
+        return {
+          championshipId: participant.championshipId,
+          championshipDate: championship?.championshipDate ?? "",
+          championshipStatus: championship?.status ?? "CANCELLED",
+          participationStatus: participant.status,
+          startedAt: toIso(participant.startedAt),
+          finalPosition: participant.finalPosition,
+          totalScore: participant.totalScore,
+          wordsSolved: participant.wordsSolved,
+          totalAttempts: participant.totalAttempts,
+          totalDurationMs: participant.totalDurationMs,
+          completedRounds: participant.completedRounds,
+          wordsTotal: this.getRounds(participant.championshipId).reduce(
+            (total, round) => total + round.boardCount,
+            0,
+          ),
+          participantCount: this.participants.filter(
+            (item) =>
+              item.championshipId === participant.championshipId &&
+              item.status !== "CANCELLED",
+          ).length,
+        };
+      });
+  }
+
+  /** Campeonatos oficiais realizados, para calendario e historico pessoal. */
+  getOfficialChampionships() {
+    return [...this.championships.values()]
+      .filter((championship) => championship.isOfficial)
+      .map((championship) => ({
+        id: championship.id,
+        date: championship.championshipDate,
+        status: championship.status,
+        participantCount: this.participants.filter(
+          (item) => item.championshipId === championship.id && item.status !== "CANCELLED",
+        ).length,
+        wordsTotal: this.getRounds(championship.id).reduce(
+          (total, round) => total + round.boardCount,
+          0,
+        ),
+      }));
+  }
+
+  getTodayChampionshipId(today: string): string | null {
+    const match = [...this.championships.values()]
+      .filter(
+        (item) =>
+          item.isOfficial && item.status !== "CANCELLED" && item.championshipDate === today,
+      )
+      .sort((left, right) => right.startsAt - left.startsAt)[0];
+
+    return match?.id ?? null;
   }
 
   private tryAutoFinish(championshipId: string): boolean {
@@ -1193,59 +1600,150 @@ export class LocalChampionshipEngine {
     };
   }
 
-  getAdminOverview(championshipId?: string): AdminOverview {
-    const target = championshipId ?? this.getCurrentChampionshipId();
+  /**
+   * Visao do painel administrativo.
+   * Nunca inclui respostas: para isso existe adminAnswers().
+   */
+  getAdminOverview(userId: string | null, championshipId?: string): AdminOverview {
+    this.requireAdmin(userId);
+
+    const serverNow = new Date(this.now()).toISOString();
+    const today = getZonedToday(serverNow, CHAMPIONSHIP_TIMEZONE);
+    const todayId = this.getTodayChampionshipId(today);
+    const target = championshipId ?? todayId ?? this.getCurrentChampionshipId();
+    const emptyCounters = {
+      registered: 0,
+      started: 0,
+      playing: 0,
+      finished: 0,
+      abandoned: 0,
+    };
 
     if (target === null) {
-      return { championship: null, rounds: [], participants: [] };
+      return {
+        serverNow,
+        today,
+        timezone: CHAMPIONSHIP_TIMEZONE,
+        hasChampionshipToday: false,
+        isToday: false,
+        championship: null,
+        counters: emptyCounters,
+        rounds: [],
+        participants: [],
+        wordPoolSize: this.answerPool.length,
+        validWordCount: this.validWords.size,
+      };
     }
 
     const championship = this.refreshStatus(target);
+    const participants = this.participants.filter((item) => item.championshipId === target);
+    const active = participants.filter((item) => item.status !== "CANCELLED");
 
     return {
+      serverNow,
+      today,
+      timezone: CHAMPIONSHIP_TIMEZONE,
+      hasChampionshipToday: todayId !== null,
+      isToday: championship.championshipDate === today,
       championship: {
         id: championship.id,
         name: championship.name,
-        championship_date: championship.championshipDate,
-        status: championship.status,
-        registration_opens_at: new Date(championship.registrationOpensAt).toISOString(),
-        registration_closes_at: new Date(championship.registrationClosesAt).toISOString(),
-        starts_at: new Date(championship.startsAt).toISOString(),
-        finished_at: toIso(championship.finishedAt),
+        championshipDate: championship.championshipDate,
         timezone: championship.timezone,
+        status: championship.status,
+        isOfficial: championship.isOfficial,
+        registrationOpensAt: new Date(championship.registrationOpensAt).toISOString(),
+        registrationClosesAt: new Date(championship.registrationClosesAt).toISOString(),
+        startsAt: new Date(championship.startsAt).toISOString(),
+        finishedAt: toIso(championship.finishedAt),
+        createdAt: new Date(championship.createdAt).toISOString(),
+        actualStartedAt: toIso(championship.actualStartedAt),
+        answerCount: this.answers.filter((item) => item.championshipId === target).length,
+        expectedAnswerCount: this.getRounds(target).reduce(
+          (total, round) => total + round.boardCount,
+          0,
+        ),
       },
-      rounds: this.getRounds(target).map((round) => ({
-        id: round.id,
-        mode: round.mode,
-        roundOrder: round.roundOrder,
-        boardCount: round.boardCount,
-        maxAttempts: round.maxAttempts,
-        status:
-          championship.status === "FINISHED"
-            ? "CLOSED"
-            : championship.status === "IN_PROGRESS"
-              ? "ACTIVE"
-              : "PENDING",
-        answerCount: this.answers.filter((item) => item.roundId === round.id).length,
-        answers:
-          championship.status === "FINISHED"
-            ? this.answers
-                .filter((item) => item.roundId === round.id)
-                .sort((left, right) => left.boardIndex - right.boardIndex)
-                .map((item) => item.answer)
-            : null,
-      })),
-      participants: this.participants
-        .filter((item) => item.championshipId === target)
-        .map((item) => ({
-          id: item.id,
-          displayName: item.displayName,
-          status: item.status,
-          registeredAt: new Date(item.registeredAt).toISOString(),
-          completedRounds: item.completedRounds,
-          totalScore: item.totalScore,
-          finalPosition: item.finalPosition,
-        })),
+      counters: {
+        registered: active.length,
+        started: active.filter((item) => item.startedAt !== null).length,
+        playing: participants.filter((item) => item.status === "IN_PROGRESS").length,
+        finished: participants.filter((item) => item.status === "FINISHED").length,
+        abandoned: participants.filter((item) => item.status === "ABANDONED").length,
+      },
+      rounds: this.getRounds(target).map((round) => {
+        const participations = this.participantRounds.filter(
+          (item) =>
+            item.roundId === round.id &&
+            active.some((participant) => participant.id === item.participantId),
+        );
+
+        return {
+          id: round.id,
+          mode: round.mode,
+          roundOrder: round.roundOrder,
+          boardCount: round.boardCount,
+          maxAttempts: round.maxAttempts,
+          status:
+            championship.status === "FINISHED" || championship.status === "CANCELLED"
+              ? ("CLOSED" as const)
+              : championship.status === "IN_PROGRESS"
+                ? ("ACTIVE" as const)
+                : ("PENDING" as const),
+          startsAt:
+            championship.status === "IN_PROGRESS" || championship.status === "FINISHED"
+              ? toIso(championship.actualStartedAt)
+              : null,
+          endsAt: null,
+          answerCount: this.answers.filter((item) => item.roundId === round.id).length,
+          notStarted:
+            active.length -
+            participations.filter((item) => item.status !== "NOT_STARTED").length,
+          inProgress: participations.filter((item) => item.status === "IN_PROGRESS").length,
+          completed: participations.filter((item) =>
+            ["COMPLETED", "FAILED", "EXPIRED"].includes(item.status),
+          ).length,
+        };
+      }),
+      participants: participants
+        .slice()
+        .sort(
+          (left, right) =>
+            (left.finalPosition ?? Number.MAX_SAFE_INTEGER) -
+              (right.finalPosition ?? Number.MAX_SAFE_INTEGER) ||
+            right.totalScore - left.totalScore ||
+            left.registeredAt - right.registeredAt,
+        )
+        .map((item) => {
+          const currentRound = this.participantRounds
+            .filter(
+              (participation) =>
+                participation.participantId === item.id &&
+                participation.status === "IN_PROGRESS",
+            )
+            .map((participation) =>
+              this.rounds.find((round) => round.id === participation.roundId),
+            )
+            .filter((round): round is EngineRound => round !== undefined)
+            .sort((left, right) => left.roundOrder - right.roundOrder)[0];
+
+          return {
+            id: item.id,
+            displayName: item.displayName,
+            status: item.status,
+            registeredAt: new Date(item.registeredAt).toISOString(),
+            startedAt: toIso(item.startedAt),
+            finishedAt: toIso(item.finishedAt),
+            completedRounds: item.completedRounds,
+            wordsSolved: item.wordsSolved,
+            totalScore: item.totalScore,
+            totalAttempts: item.totalAttempts,
+            totalDurationMs: item.totalDurationMs,
+            finalPosition: item.finalPosition,
+            currentRoundMode: currentRound?.mode ?? null,
+            currentRoundOrder: currentRound?.roundOrder ?? null,
+          };
+        }),
       wordPoolSize: this.answerPool.length,
       validWordCount: this.validWords.size,
     };
@@ -1336,30 +1834,106 @@ export class LocalChampionshipService implements ChampionshipService {
   }
 
   async getAdminOverview(championshipId?: string): Promise<AdminOverview> {
-    return this.engine.getAdminOverview(championshipId);
+    return this.engine.getAdminOverview(this.userId, championshipId);
   }
 
   async createChampionship(input: CreateChampionshipInput = {}): Promise<{ championshipId: string }> {
+    this.engine.requireAdmin(this.userId);
     return { championshipId: this.engine.createChampionship(input).id };
+  }
+
+  async createNextChampionship(): Promise<CreateNextChampionshipResult> {
+    this.engine.requireAdmin(this.userId);
+    return this.engine.createNextChampionship();
   }
 
   async setChampionshipStatus(
     championshipId: string,
     status: ChampionshipStatus,
   ): Promise<void> {
+    this.engine.requireAdmin(this.userId);
     this.engine.setStatus(championshipId, status);
   }
 
   async redrawWords(championshipId: string): Promise<{ wordsDrawn: number }> {
+    this.engine.requireAdmin(this.userId);
     return { wordsDrawn: this.engine.drawWords(championshipId) };
   }
 
   async recalculateRanking(championshipId: string): Promise<void> {
+    this.engine.requireAdmin(this.userId);
     this.engine.consolidateRanking(championshipId);
   }
 
-  async updateSchedule(): Promise<void> {
-    throw new ChampionshipError("SCHEDULE_UPDATE_NOT_ALLOWED");
+  async updateSchedule(
+    championshipId: string,
+    schedule: {
+      registrationOpensAt?: string;
+      registrationClosesAt?: string;
+      startsAt?: string;
+    },
+  ): Promise<void> {
+    const overview = this.engine.getAdminOverview(this.userId, championshipId);
+    const current = overview.championship;
+
+    if (current === null) {
+      throw new ChampionshipError("CHAMPIONSHIP_NOT_FOUND");
+    }
+
+    this.engine.adminUpdateSchedule(this.userId, championshipId, {
+      registrationOpensAt: schedule.registrationOpensAt ?? current.registrationOpensAt,
+      registrationClosesAt: schedule.registrationClosesAt ?? current.registrationClosesAt,
+      startsAt: schedule.startsAt ?? current.startsAt,
+    });
+  }
+
+  // ---- Controles do painel administrativo -------------------------------
+
+  async startChampionshipNow(championshipId: string): Promise<StartNowResult> {
+    return this.engine.adminStartNow(this.userId, championshipId);
+  }
+
+  async updateChampionshipSchedule(
+    championshipId: string,
+    schedule: ChampionshipSchedule,
+  ): Promise<void> {
+    this.engine.adminUpdateSchedule(this.userId, championshipId, schedule);
+  }
+
+  async openRegistrationNow(championshipId: string): Promise<void> {
+    this.engine.adminOpenRegistrationNow(this.userId, championshipId);
+  }
+
+  async closeRegistrationNow(championshipId: string): Promise<void> {
+    this.engine.adminCloseRegistrationNow(this.userId, championshipId);
+  }
+
+  async scheduleStartIn(championshipId: string, minutes: number): Promise<void> {
+    this.engine.adminScheduleStartIn(this.userId, championshipId, minutes);
+  }
+
+  async cancelChampionship(championshipId: string): Promise<void> {
+    this.engine.adminCancel(this.userId, championshipId);
+  }
+
+  async finishChampionship(championshipId: string): Promise<void> {
+    this.engine.adminFinish(this.userId, championshipId);
+  }
+
+  async getChampionshipAnswers(championshipId: string): Promise<AdminRoundAnswers[]> {
+    return this.engine.adminAnswers(this.userId, championshipId);
+  }
+
+  async listPlayers(): Promise<AdminPlayer[]> {
+    return this.engine.adminListPlayers(this.userId);
+  }
+
+  async getPlayerGames(
+    targetUserId: string,
+    limit = 40,
+    offset = 0,
+  ): Promise<AdminPlayerHistory> {
+    return this.engine.adminPlayerGames(this.userId, targetUserId, limit, offset);
   }
 }
 

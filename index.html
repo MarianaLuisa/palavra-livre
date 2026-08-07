@@ -2,7 +2,14 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover libera env(safe-area-inset-*), usado em
+         responsive.css para o conteudo nao ficar sob o recorte da tela.
+         Sem maximum-scale nem user-scalable=no: bloquear o zoom quebra a
+         acessibilidade de quem precisa aumentar a letra. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
     <meta
       name="description"
       content="Palavra Livre, um jogo web de adivinhar palavras em portugues."

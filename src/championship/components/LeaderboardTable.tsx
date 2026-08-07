@@ -25,7 +25,7 @@ export function LeaderboardTable({
   entries,
   isFinal,
   highlightParticipantId = null,
-  emptyMessage = "Ninguem inscrito ainda.",
+  emptyMessage = "Ninguém inscrito ainda.",
 }: LeaderboardTableProps) {
   if (entries.length === 0) {
     return <p className="empty-state">{emptyMessage}</p>;
@@ -36,7 +36,7 @@ export function LeaderboardTable({
       <table className="leaderboard-table">
         <caption className="visually-hidden">
           {isFinal
-            ? "Classificacao final do campeonato"
+            ? "Classificação final do campeonato"
             : "Lista parcial de participantes. Os detalhes aparecem no encerramento."}
         </caption>
         <thead>
@@ -54,7 +54,7 @@ export function LeaderboardTable({
             ) : (
               <th scope="col">Modalidades</th>
             )}
-            <th scope="col">Situacao</th>
+            <th scope="col">Situação</th>
           </tr>
         </thead>
         <tbody>
@@ -70,7 +70,7 @@ export function LeaderboardTable({
                 <td>{isFinal ? formatPosition(entry.position ?? index + 1) : index + 1}</td>
                 <td>
                   {entry.displayName}
-                  {isCurrentUser ? <span className="you-badge">voce</span> : null}
+                  {isCurrentUser ? <span className="you-badge">você</span> : null}
                 </td>
                 {isFinal ? (
                   <>

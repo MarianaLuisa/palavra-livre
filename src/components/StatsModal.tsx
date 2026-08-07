@@ -31,7 +31,7 @@ export function StatsModal({ open, stats, onClose }: StatsModalProps) {
           x
         </button>
         <p className="eyebrow">LocalStorage</p>
-        <h2 id="stats-title">Estatisticas</h2>
+        <h2 id="stats-title">Estatísticas</h2>
         <div className="stats-grid">
           {MODES.map((mode) => {
             const modeStats = stats[mode];
@@ -50,7 +50,7 @@ export function StatsModal({ open, stats, onClose }: StatsModalProps) {
                     <dd>{modeStats.played}</dd>
                   </div>
                   <div>
-                    <dt>Vitorias</dt>
+                    <dt>Vitórias</dt>
                     <dd>{modeStats.won}</dd>
                   </div>
                   <div>
@@ -62,11 +62,11 @@ export function StatsModal({ open, stats, onClose }: StatsModalProps) {
                     <dd>{winRate}%</dd>
                   </div>
                   <div>
-                    <dt>Media</dt>
+                    <dt>Média</dt>
                     <dd>{averageGuesses}</dd>
                   </div>
                   <div>
-                    <dt>Sequencia</dt>
+                    <dt>Sequência</dt>
                     <dd>{modeStats.currentStreak}</dd>
                   </div>
                   <div>
@@ -74,7 +74,7 @@ export function StatsModal({ open, stats, onClose }: StatsModalProps) {
                     <dd>{modeStats.maxStreak}</dd>
                   </div>
                 </dl>
-                <div className="distribution" aria-label={`Distribuicao de ${config.label}`}>
+                <div className="distribution" aria-label={`Distribuição de ${config.label}`}>
                   {Array.from({ length: config.maxAttempts }, (_, index) => {
                     const attempt = index + 1;
                     const value = modeStats.winDistribution[String(attempt)] ?? 0;

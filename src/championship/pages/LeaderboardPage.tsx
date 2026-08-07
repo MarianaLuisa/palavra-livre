@@ -44,7 +44,7 @@ export function LeaderboardPage() {
   return (
     <section className="championship-panel" aria-labelledby="leaderboard-title">
       <header className="panel-header">
-        <h1 id="leaderboard-title">Classificacao</h1>
+        <h1 id="leaderboard-title">Classificação</h1>
         {leaderboard?.championshipDate !== undefined ? (
           <p className="panel-subtitle">
             {CHAMPIONSHIP_BRAND.name} · {formatDate(leaderboard.championshipDate)}
@@ -57,7 +57,7 @@ export function LeaderboardPage() {
         ) : null}
       </header>
 
-      {loading ? <p className="loading-state">Carregando classificacao...</p> : null}
+      {loading ? <p className="loading-state">Carregando classificação...</p> : null}
       {error !== null ? (
         <p className="panel-error" role="alert">
           {error}
@@ -68,8 +68,8 @@ export function LeaderboardPage() {
         <>
           {!leaderboard.isFinal ? (
             <p className="panel-notice">
-              A classificacao detalhada so aparece no encerramento. Durante o{" "}
-              {CHAMPIONSHIP_BRAND.eventLabel}, mostramos apenas quem esta participando e quantas
+              A classificação detalhada só aparece no encerramento. Durante o{" "}
+              {CHAMPIONSHIP_BRAND.eventLabel}, mostramos apenas quem está participando e quantas
               modalidades cada pessoa concluiu.
             </p>
           ) : null}

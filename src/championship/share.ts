@@ -20,7 +20,7 @@ export function createChampionshipShareText(input: ShareInput): string {
   const header = `${CHAMPIONSHIP_BRAND.name} do Palavra Livre - ${formatDate(input.championshipDate)}`;
 
   if (!input.championshipFinished) {
-    return `${header}\nEstou participando do ${CHAMPIONSHIP_BRAND.eventLabel} de hoje. Resultados sao divulgados no encerramento.`;
+    return `${header}\nEstou participando do ${CHAMPIONSHIP_BRAND.eventLabel} de hoje. Resultados são divulgados no encerramento.`;
   }
 
   const positionText =

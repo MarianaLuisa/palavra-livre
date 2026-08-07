@@ -9,6 +9,7 @@ type ChampionshipBoardGridProps = {
   maxAttempts: number;
   gameStatus: GameStatus;
   isRevealing: boolean;
+  invalidGuessId: number;
   revealingBoards: number[];
   onTileSelect: (index: number) => void;
 };
@@ -33,6 +34,7 @@ export function ChampionshipBoardGrid({
   maxAttempts,
   gameStatus,
   isRevealing,
+  invalidGuessId,
   revealingBoards,
   onTileSelect,
 }: ChampionshipBoardGridProps) {
@@ -48,6 +50,7 @@ export function ChampionshipBoardGrid({
           maxAttempts={maxAttempts}
           gameStatus={gameStatus}
           isRevealing={isRevealing && revealingBoards.includes(board.boardIndex)}
+          invalidGuessId={invalidGuessId}
           onTileSelect={onTileSelect}
         />
       ))}

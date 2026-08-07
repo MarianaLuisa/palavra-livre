@@ -111,6 +111,7 @@ nos dois lugares (o teste de pontuacao quebra se divergirem).
 | `supabase/migrations/20260806000400_championship_player_rpc.sql` | `cd_get_state`, `cd_register`, `cd_cancel_registration`, `cd_abandon_championship`, `cd_start_round`, `cd_submit_attempt`, `cd_leaderboard`, `cd_championship_results`, `cd_championship_history`, `cd_my_stats` |
 | `supabase/migrations/20260806000500_championship_admin_rpc.sql` | criacao, horarios, status, novo sorteio, recalculo, visao geral, config |
 | `supabase/migrations/20260806000600_championship_security.sql` | RLS, policies, grants, trigger de perfil |
+| `supabase/migrations/20260806000700_championship_admin_controls.sql` | controles do painel: comecar agora, horarios, atalhos, cancelar, finalizar, respostas |
 | `supabase/seed/palavras.sql` | base de palavras (gerado) |
 | `supabase/README.md` | como aplicar e operar |
 | `scripts/gerar-seed-palavras.mjs` | gera o seed a partir dos JSONs do jogo |
@@ -354,7 +355,94 @@ Para o nome gravado em cada campeonato, use o parametro `p_name` de
 
 ---
 
-## 12. Funcionalidades futuras
+## 12. Painel administrativo
+
+Rota: `/campeonato/admin`. Migration: `20260806000700_championship_admin_controls.sql`.
+
+O objetivo e operar o campeonato inteiro pela interface, sem abrir o SQL Editor.
+
+### O detalhe que orienta todo o desenho
+
+`cd_refresh_championship_status` **deriva** o status a partir de `now()` e dos
+horarios do campeonato. Gravar apenas `status = 'IN_PROGRESS'` seria desfeito na
+proxima leitura.
+
+Por isso **toda acao de controle ajusta horarios**, e o status vem como
+consequencia. E o que faz "Comecar agora" ser persistente em vez de piscar de
+volta para "Inscricoes abertas" alguns segundos depois.
+
+O invariante `registration_opens_at < registration_closes_at <= starts_at` e
+respeitado escrevendo os tres campos numa unica instrucao `UPDATE`, para nunca
+existir um estado intermediario que viole o `CHECK` da tabela.
+
+### RPCs novas
+
+| Funcao | O que faz |
+| --- | --- |
+| `cd_admin_start_championship_now(uuid)` | antecipa `starts_at` para `now()`, encerra inscricoes e ativa as rodadas |
+| `cd_admin_update_championship_schedule(uuid, timestamptz, timestamptz, timestamptz)` | grava os tres horarios com validacao de ordem |
+| `cd_admin_open_registration_now(uuid)` | abre inscricoes imediatamente |
+| `cd_admin_close_registration_now(uuid)` | fecha inscricoes sem iniciar |
+| `cd_admin_schedule_start_in(uuid, integer)` | programa o inicio para daqui a N minutos |
+| `cd_admin_cancel_championship(uuid)` | muda para `CANCELLED` sem apagar nada |
+| `cd_admin_finish_championship(uuid)` | encerramento manual de excecao |
+| `cd_admin_championship_answers(uuid)` | respostas, apenas apos `FINISHED` |
+| `cd_today_championship_id()` | campeonato oficial de hoje no fuso do campeonato (interna) |
+| `cd_admin_lock_championship(uuid)` | trava a linha com `FOR UPDATE` (interna) |
+| `cd_admin_overview(uuid)` | reescrita: contadores, progresso por rodada e `serverNow` |
+
+### Comecar agora
+
+Fluxo: clique → confirmacao explicando que o horario sera antecipado → RPC.
+
+Garantias da funcao:
+
+- `cd_require_admin()` antes de qualquer coisa: `auth.uid()` + `championship_admins`;
+- `FOR UPDATE` no campeonato, entao dois cliques simultaneos serializam;
+- se ja estiver `IN_PROGRESS`, retorna `alreadyStarted: true` sem efeito colateral;
+- recusa campeonato `CANCELLED`, `FINISHED` ou sem palavras sorteadas;
+- usa `now()` do banco, nunca o relogio do navegador;
+- **preserva** `championship_answers`, `championship_rounds`,
+  `championship_participants`, `participant_rounds` e `participant_attempts`;
+- nao recria rodada nem resorteia palavra.
+
+### Respostas continuam protegidas
+
+`cd_admin_overview` **nao devolve nenhuma resposta**, em nenhum status. As
+palavras saem apenas por `cd_admin_championship_answers`, que exige
+administrador **e** status `FINISHED`. Um teste serializa a visao geral inteira
+e verifica que nenhuma das 13 palavras aparece no payload.
+
+### Permissoes
+
+Funcoes novas nascem com `EXECUTE` para `PUBLIC`. A migration revoga
+explicitamente de `public`, `anon` e `authenticated` e concede apenas a
+`authenticated`. `cd_today_championship_id` e `cd_admin_lock_championship`
+ficam sem grant nenhum: so podem ser chamadas de dentro do banco.
+
+Esconder botao no frontend nao protege nada. Um usuario autenticado comum que
+chame qualquer `cd_admin_*` manualmente recebe `FORBIDDEN`.
+
+### Fuso horario
+
+`src/championship/timezone.ts` converte entre horario de parede de
+`America/Sao_Paulo` e instantes absolutos. O painel mostra e recebe hora local;
+o que viaja para o banco e sempre ISO 8601 com fuso. Nenhuma conta manual de
+UTC menos tres horas em lugar nenhum.
+
+A conversao faz duas passagens de offset, porque o offset depende do proprio
+instante. O Brasil nao usa mais horario de verao, mas a funcao fica correta
+para qualquer zona.
+
+### Atualizacao do estado
+
+O painel repete a leitura do servidor a cada 15 segundos, ou 6 segundos quando
+o campeonato esta em andamento. Alem disso, toda acao releva o estado ao
+terminar, com sucesso ou com erro. Uma acao por vez, o que impede duplo clique.
+Erro tecnico do Postgres vai para o `console.error`; a tela mostra mensagem em
+portugues.
+
+## 13. Funcionalidades futuras
 
 A modelagem ja suporta, sem migration nova:
 

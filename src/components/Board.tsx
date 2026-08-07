@@ -10,6 +10,7 @@ type BoardProps = {
   maxAttempts: number;
   gameStatus: GameStatus;
   isRevealing: boolean;
+  invalidGuessId?: number;
   onTileSelect: (index: number) => void;
 };
 
@@ -32,9 +33,10 @@ export function Board({
   maxAttempts,
   gameStatus,
   isRevealing,
+  invalidGuessId = 0,
   onTileSelect,
 }: BoardProps) {
-  const showCurrentRow = gameStatus === "playing" && !board.solved;
+  const showCurrentRow = gameStatus === "playing" && !board.solved && !isRevealing;
   const emptyRowsCount = Math.max(
     maxAttempts - board.rows.length - (showCurrentRow ? 1 : 0),
     0,
@@ -68,8 +70,10 @@ export function Board({
 
         {showCurrentRow ? (
           <Row
+            key={`current-${invalidGuessId}`}
             letters={createCurrentLetters(currentGuessLetters)}
             isCurrent
+            isInvalid={invalidGuessId > 0}
             activeTileIndex={activeTileIndex}
             onTileSelect={onTileSelect}
           />

@@ -17,6 +17,39 @@ O Jogo Livre continua funcionando sozinho. Sem as variaveis de ambiente do
 Supabase, o app roda normalmente e o campeonato apenas informa que nao esta
 configurado.
 
+## Contas e progresso
+
+Criar uma conta e opcional. Com ela, cada partida concluida entra no seu
+historico e voce acompanha a evolucao ao longo do mes.
+
+- **Cadastro** em `/cadastro`: nome de usuario, e-mail e senha.
+- **Login** em `/login`, com recuperacao de senha em `/recuperar-senha`.
+- **Meu progresso** em `/progresso`: calendario mensal, sequencia de dias,
+  resumo do mes e desempenho por modo.
+- **Estatisticas** em `/estatisticas`: por periodo e comparacao entre meses.
+- **Perfil** em `/perfil` e historico de campeonatos em `/campeonatos/historico`.
+
+O nome de usuario e unico, sem diferenciar maiusculas: `Mariana` e `mariana`
+nao podem pertencer a pessoas diferentes.
+
+Autenticacao e Supabase Auth com e-mail e senha. O projeto nao guarda senha em
+lugar nenhum: nao existe tabela de senhas e nada vai para o localStorage alem
+do token de sessao.
+
+**Quem ja jogava sem conta nao perde nada.** Ao criar a conta no mesmo
+navegador, a sessao anonima e convertida preservando o mesmo identificador, e
+o historico e as inscricoes no campeonato continuam seus.
+
+Detalhes de arquitetura, RLS e regra de sequencia em
+[docs/CONTAS-E-PROGRESSO.md](docs/CONTAS-E-PROGRESSO.md).
+
+### O que conta como dia jogado
+
+Pelo menos uma partida concluida, em qualquer modo, ou uma etapa do Campeonato
+Diario efetivamente jogada. Abrir e abandonar nao conta. A data e a do servidor,
+em `America/Sao_Paulo`, e todas as estatisticas sao calculadas no banco: o
+navegador nunca envia vitorias, sequencia ou pontuacao.
+
 ## Modos de jogo
 
 - **Simples**: 1 palavra secreta, 6 tentativas.
@@ -114,16 +147,29 @@ Sem essas variaveis o Jogo Livre funciona normalmente.
 
 ## Configurar o Supabase
 
+Estes passos sao manuais, no dashboard. Nenhum e feito por migration.
+
 1. Crie o projeto em [supabase.com](https://supabase.com).
-2. Ligue `Authentication > Providers > Anonymous sign-ins`.
-3. Aplique as migrations e a base de palavras (secao abaixo).
-4. Cadastre um administrador:
+2. Ligue `Authentication > Providers > Anonymous sign-ins` (campeonato sem conta).
+3. Ligue `Authentication > Providers > Email` (contas permanentes).
+   `Confirm email` pode ficar ligado ou desligado: o app trata os dois casos.
+4. Em `Authentication > URL Configuration`, defina a **Site URL** de producao e
+   adicione em **Redirect URLs**:
+
+   ```
+   http://localhost:5173/recuperar-senha
+   https://SEU-DOMINIO/recuperar-senha
+   ```
+
+   Sem isso o link de recuperacao de senha nao volta para a tela certa.
+5. Aplique as migrations e a base de palavras (secao abaixo).
+6. Cadastre um administrador:
 
 ```sql
 insert into championship_admins (user_id) values ('SEU-USER-UUID');
 ```
 
-5. Copie URL e chave anon de `Project Settings > API` para o `.env.local`.
+7. Copie URL e chave anon de `Project Settings > API` para o `.env.local`.
 
 Passo a passo completo em [supabase/README.md](supabase/README.md).
 
@@ -160,12 +206,41 @@ palavras no servidor.
 As transicoes de status acontecem sozinhas, comparando `now()` do banco com os
 horarios do campeonato. Nao e necessario cron.
 
-## Acesso administrativo
+## Painel administrativo
 
-A tela `/campeonato/admin` fica visivel para qualquer pessoa, mas todas as acoes
-chamam `cd_require_admin()` no banco. Quem nao estiver em `championship_admins`
-recebe erro de permissao e nao consegue criar campeonato, mudar status, sortear
-palavras nem ver a lista de participantes.
+A tela `/campeonato/admin` permite operar o campeonato sem abrir o SQL Editor:
+
+- painel do campeonato do dia com status, horarios e contadores de participantes;
+- **Comecar agora**: antecipa o inicio para o instante atual do servidor;
+- edicao dos tres horarios em hora de Brasilia;
+- acoes rapidas para testar: abrir/fechar inscricoes, iniciar em 5 ou 10 minutos;
+- acompanhamento das quatro rodadas e da situacao de cada participante;
+- resultado final com campeao, podio e ranking;
+- cancelar ou finalizar o campeonato, com confirmacao.
+
+### Comecar agora
+
+O botao aparece quando o campeonato esta `SCHEDULED`, `REGISTRATION_OPEN` ou
+`WAITING`. Ao confirmar, o servidor encerra as inscricoes, move `starts_at` para
+`now()` e ativa as rodadas.
+
+O que **nao** muda: as 13 palavras ja sorteadas, as inscricoes existentes, as
+rodadas, as tentativas e as pontuacoes. Chamar duas vezes nao causa efeito
+duplicado.
+
+Detalhe importante: o status do campeonato e derivado do relogio do banco. Por
+isso a acao antecipa o horario de inicio em vez de so gravar o status — do
+contrario a proxima leitura desfaria a mudanca.
+
+### Autorizacao
+
+A tela fica acessivel por URL, mas todas as acoes chamam `cd_require_admin()` no
+banco, que confere `auth.uid()` contra `championship_admins`. Quem nao for
+administrador ve a mensagem de acesso restrito, e uma chamada manual a qualquer
+RPC `cd_admin_*` retorna erro de permissao.
+
+As respostas do campeonato nunca acompanham a visao geral. Elas saem apenas por
+`cd_admin_championship_answers`, que exige administrador e status `FINISHED`.
 
 ## Rodar localmente
 
@@ -315,11 +390,31 @@ repositorio: `vercel.json` e `public/_redirects`.
 1. Migrations aplicadas (`supabase db push`).
 2. `supabase/seed/palavras.sql` carregado.
 3. Login anonimo habilitado no Supabase.
-4. Pelo menos um registro em `championship_admins`.
-5. Variaveis de ambiente com a chave **anon** (nunca a `service_role`).
-6. Campeonato do dia criado.
-7. Conferido que `select * from championship_answers` como `authenticated`
+4. Login por e-mail habilitado no Supabase.
+5. Site URL e Redirect URLs configuradas, incluindo `/recuperar-senha`.
+6. Pelo menos um registro em `championship_admins`.
+7. Variaveis de ambiente com a chave **anon** (nunca a `service_role`).
+8. Campeonato do dia criado.
+9. Conferido que `select * from championship_answers` como `authenticated`
    nao retorna nada.
+10. Conferido que `select * from player_games` como `authenticated` retorna
+    apenas as proprias linhas.
+
+### Variaveis no Vercel
+
+Nenhuma variavel nova. As duas existentes continuam servindo:
+
+| Nome | Onde | Tipo |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | Vercel > Settings > Environment Variables | publica |
+| `VITE_SUPABASE_ANON_KEY` | Vercel > Settings > Environment Variables | publica |
+
+Toda variavel `VITE_*` vai para o navegador. **Nunca** coloque a
+`service_role` nem qualquer secret em variavel `VITE_*`: ela ignora RLS e
+daria acesso as respostas do campeonato e ao historico de todo mundo.
+
+Lembre de incluir o dominio do Vercel nas Redirect URLs do Supabase, senao a
+recuperacao de senha nao funciona em producao.
 
 ## Licenca
 

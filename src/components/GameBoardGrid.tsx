@@ -8,6 +8,7 @@ type GameBoardGridProps = {
   maxAttempts: number;
   gameStatus: GameStatus;
   isRevealing: boolean;
+  invalidGuessId: number;
   revealingAnswers: string[];
   onTileSelect: (index: number) => void;
 };
@@ -19,6 +20,7 @@ export function GameBoardGrid({
   maxAttempts,
   gameStatus,
   isRevealing,
+  invalidGuessId,
   revealingAnswers,
   onTileSelect,
 }: GameBoardGridProps) {
@@ -34,6 +36,7 @@ export function GameBoardGrid({
           maxAttempts={maxAttempts}
           gameStatus={gameStatus}
           isRevealing={isRevealing && revealingAnswers.includes(board.answer)}
+          invalidGuessId={invalidGuessId}
           onTileSelect={onTileSelect}
         />
       ))}

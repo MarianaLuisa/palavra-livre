@@ -39,8 +39,8 @@ export function LobbyPanel({
 
       <Countdown
         remainingMs={remainingMs}
-        label={`O ${CHAMPIONSHIP_BRAND.eventLabel} comeca em`}
-        hint={`Inicio as ${formatTime(championship.startsAt)} (horario de Brasilia)`}
+        label={`O ${CHAMPIONSHIP_BRAND.eventLabel} começa em`}
+        hint={`Início às ${formatTime(championship.startsAt)} (horário de Brasília)`}
       />
 
       <dl className="panel-grid">
@@ -49,7 +49,7 @@ export function LobbyPanel({
           <dd>{participant.displayName}</dd>
         </div>
         <div>
-          <dt>Situacao</dt>
+          <dt>Situação</dt>
           <dd>{PARTICIPATION_STATUS_LABEL[participant.status] ?? participant.status}</dd>
         </div>
         <div>
@@ -57,22 +57,20 @@ export function LobbyPanel({
           <dd>{championship.participantCount}</dd>
         </div>
         <div>
-          <dt>Inscricoes fecham</dt>
+          <dt>Inscrições fecham</dt>
           <dd>{formatTime(championship.registrationClosesAt)}</dd>
         </div>
       </dl>
 
       <ul className="panel-facts">
-        <li>Todos vao receber exatamente as mesmas palavras, ao mesmo tempo.</li>
-        <li>
-          A primeira modalidade abre automaticamente quando o servidor confirmar o inicio.
-        </li>
-        <li>Se voce sair e voltar, sua participacao continua de onde parou.</li>
+        <li>Todos vão receber exatamente as mesmas palavras, ao mesmo tempo.</li>
+        <li>A primeira modalidade abre automaticamente quando o servidor confirmar o início.</li>
+        <li>Se você sair e voltar, sua participação continua de onde parou.</li>
       </ul>
 
       <div className="panel-actions">
         <button className="secondary-button" type="button" onClick={onRefresh} disabled={busy}>
-          Atualizar situacao
+          Atualizar situação
         </button>
         {canCancel ? (
           <button
@@ -81,13 +79,13 @@ export function LobbyPanel({
             onClick={onCancelRegistration}
             disabled={busy}
           >
-            Cancelar minha inscricao
+            Cancelar minha inscrição
           </button>
         ) : null}
       </div>
 
       <p className="panel-footnote">
-        A contagem acima e apenas visual. O inicio real e confirmado pelo servidor.
+        A contagem acima é apenas visual. O início real é confirmado pelo servidor.
       </p>
     </section>
   );

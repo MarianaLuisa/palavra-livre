@@ -12,6 +12,7 @@ import { formatDate, formatDuration, formatPosition, formatScore } from "../form
 import { getChampionshipService } from "../service";
 import { createChampionshipShareText, shareChampionshipResult } from "../share";
 import type { ChampionshipResults } from "../types";
+import { repairMojibakeList } from "../../utils/repairMojibake";
 
 type ResultsPanelProps = {
   championshipId: string;
@@ -86,8 +87,8 @@ export function ResultsPanel({ championshipId, currentUserParticipantId }: Resul
       outcome === "shared"
         ? "Resultado compartilhado."
         : outcome === "copied"
-          ? "Resultado copiado para a area de transferencia."
-          : "Nao foi possivel compartilhar neste dispositivo.",
+          ? "Resultado copiado para a área de transferência."
+          : "Não foi possível compartilhar neste dispositivo.",
     );
   }
 
@@ -102,7 +103,7 @@ export function ResultsPanel({ championshipId, currentUserParticipantId }: Resul
 
       {champion !== undefined ? (
         <p className="champion-highlight">
-          Campeao do dia: <strong>{champion.displayName}</strong> com{" "}
+          Campeão do dia: <strong>{champion.displayName}</strong> com{" "}
           {formatScore(champion.totalScore)} pontos.
         </p>
       ) : null}
@@ -124,11 +125,11 @@ export function ResultsPanel({ championshipId, currentUserParticipantId }: Resul
           <h2 id="my-result-title">Seu desempenho</h2>
           <dl className="panel-grid">
             <div>
-              <dt>Colocacao</dt>
+              <dt>Colocação</dt>
               <dd>{formatPosition(me.position)}</dd>
             </div>
             <div>
-              <dt>Pontuacao</dt>
+              <dt>Pontuação</dt>
               <dd>{formatScore(me.totalScore)}</dd>
             </div>
             <div>
@@ -138,7 +139,7 @@ export function ResultsPanel({ championshipId, currentUserParticipantId }: Resul
               </dd>
             </div>
             <div>
-              <dt>Modalidades concluidas</dt>
+              <dt>Modalidades concluídas</dt>
               <dd>{me.completedRounds}/4</dd>
             </div>
             <div>
@@ -160,9 +161,9 @@ export function ResultsPanel({ championshipId, currentUserParticipantId }: Resul
                   <th scope="col">Palavras</th>
                   <th scope="col">Tentativas</th>
                   <th scope="col">Base</th>
-                  <th scope="col">Bonus</th>
+                  <th scope="col">Bônus</th>
                   <th scope="col">Total</th>
-                  <th scope="col">Situacao</th>
+                  <th scope="col">Situação</th>
                 </tr>
               </thead>
               <tbody>
@@ -203,14 +204,15 @@ export function ResultsPanel({ championshipId, currentUserParticipantId }: Resul
         <ul className="answers-list">
           {results.rounds.map((round) => (
             <li key={round.roundId}>
-              <strong>{CHAMPIONSHIP_MODE_LABEL[round.mode]}:</strong> {round.answers.join(", ")}
+              <strong>{CHAMPIONSHIP_MODE_LABEL[round.mode]}:</strong>{" "}
+              {repairMojibakeList(round.answers).join(", ")}
             </li>
           ))}
         </ul>
       </section>
 
       <section aria-labelledby="final-standings-title">
-        <h2 id="final-standings-title">Classificacao completa</h2>
+        <h2 id="final-standings-title">Classificação completa</h2>
         <LeaderboardTable
           entries={results.participants}
           isFinal

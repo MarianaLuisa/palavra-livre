@@ -6,6 +6,12 @@ import type { ChampionshipSummary } from "../types";
 type JoinPanelProps = {
   championship: ChampionshipSummary;
   suggestedName: string;
+  /**
+   * Nome de usuário da conta permanente.
+   * Quando presente, a inscrição não pede o nome de novo: usa a conta.
+   */
+  accountUsername?: string | null;
+  serverNow: string;
   busy: boolean;
   onRegister: (displayName: string) => void;
 };
@@ -13,18 +19,33 @@ type JoinPanelProps = {
 export function JoinPanel({
   championship,
   suggestedName,
+  accountUsername = null,
+  serverNow,
   busy,
   onRegister,
 }: JoinPanelProps) {
-  const [displayName, setDisplayName] = useState(suggestedName);
-  const registrationOpen = championship.status === "REGISTRATION_OPEN";
+  const [displayName, setDisplayName] = useState(accountUsername ?? suggestedName);
+  const usesAccountName = accountUsername !== null && accountUsername.length >= 2;
+  const serverTime = Date.parse(serverNow);
+  const registrationOpensAt = Date.parse(championship.registrationOpensAt);
+  const registrationClosesAt = Date.parse(championship.registrationClosesAt);
+  const startsAt = Date.parse(championship.startsAt);
+  const registrationOpen =
+    championship.status === "REGISTRATION_OPEN" &&
+    serverTime >= registrationOpensAt &&
+    serverTime < registrationClosesAt;
+  const championshipStarted =
+    championship.status === "IN_PROGRESS" ||
+    championship.status === "CALCULATING_RESULTS" ||
+    championship.status === "FINISHED" ||
+    serverTime >= startsAt;
   const trimmedName = displayName.trim();
   const nameIsValid = trimmedName.length >= 2 && trimmedName.length <= 24;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (nameIsValid && !busy) {
+    if (registrationOpen && nameIsValid && !busy) {
       onRegister(trimmedName);
     }
   }
@@ -34,7 +55,7 @@ export function JoinPanel({
       <header className="panel-header">
         <h1 id="join-title">{CHAMPIONSHIP_BRAND.name}</h1>
         <p className="panel-subtitle">
-          {formatDate(championship.championshipDate)} · inicio as{" "}
+          {formatDate(championship.championshipDate)} · início às{" "}
           {formatTime(championship.startsAt)}
         </p>
         <span className={`status-chip status-${championship.status.toLowerCase()}`}>
@@ -44,15 +65,27 @@ export function JoinPanel({
 
       <ul className="panel-facts">
         <li>Todos os {CHAMPIONSHIP_BRAND.participantLabelPlural} recebem exatamente as mesmas palavras.</li>
-        <li>Quatro modalidades em sequencia: Simples, Dueto, Quarteto e Sexteto.</li>
+        <li>Quatro modalidades em sequência: Simples, Dueto, Quarteto e Sexteto.</li>
         <li>13 palavras no total. Cada palavra descoberta vale 100 pontos.</li>
         <li>Concluir todas as palavras de uma modalidade rende 10 pontos por tentativa restante.</li>
-        <li>Uma participacao por pessoa e por dia.</li>
+        <li>Uma participação por pessoa e por dia.</li>
       </ul>
 
       {registrationOpen ? (
         <form className="join-form" onSubmit={handleSubmit}>
-          <label htmlFor="display-name">Seu nome no {CHAMPIONSHIP_BRAND.eventLabel}</label>
+          {usesAccountName ? (
+            // Conta permanente: não pedimos o nome de novo.
+            <div className="join-account">
+              <span>Você entra como</span>
+              <strong>{accountUsername}</strong>
+            </div>
+          ) : null}
+          <label
+            htmlFor="display-name"
+            className={usesAccountName ? "visually-hidden" : undefined}
+          >
+            Seu nome no {CHAMPIONSHIP_BRAND.eventLabel}
+          </label>
           <input
             id="display-name"
             className="text-input"
@@ -60,33 +93,37 @@ export function JoinPanel({
             value={displayName}
             maxLength={24}
             autoComplete="nickname"
-            placeholder="Como voce quer aparecer no ranking"
+            placeholder="Como você quer aparecer no ranking"
             onChange={(event) => setDisplayName(event.target.value)}
-            disabled={busy}
+            disabled={busy || usesAccountName}
+            readOnly={usesAccountName}
+            hidden={usesAccountName}
             aria-describedby="display-name-hint"
           />
-          <small id="display-name-hint">
-            Entre 2 e 24 caracteres. Nao pode repetir o nome de outro participante do mesmo dia.
+          <small id="display-name-hint" hidden={usesAccountName}>
+            Entre 2 e 24 caracteres. Não pode repetir o nome de outro participante do mesmo dia.
           </small>
           <button className="primary-button" type="submit" disabled={!nameIsValid || busy}>
-            {busy ? "Inscrevendo..." : "Confirmar inscricao"}
+            {busy ? "Inscrevendo..." : "Confirmar inscrição"}
           </button>
         </form>
       ) : (
         <div className="panel-notice">
-          <p>
-            As inscricoes abrem em {formatDate(championship.registrationOpensAt)} as{" "}
-            {formatTime(championship.registrationOpensAt)} e fecham as{" "}
-            {formatTime(championship.registrationClosesAt)}.
-          </p>
-          <p>
-            Enquanto isso, o Jogo Livre continua disponivel com partidas ilimitadas.
-          </p>
+          {championshipStarted || championship.status === "WAITING" ? (
+            <p>As inscrições deste {CHAMPIONSHIP_BRAND.eventLabel} já foram encerradas.</p>
+          ) : (
+            <p>
+              As inscrições abrem em {formatDate(championship.registrationOpensAt)} às{" "}
+              {formatTime(championship.registrationOpensAt)} e fecham às{" "}
+              {formatTime(championship.registrationClosesAt)}.
+            </p>
+          )}
+          <p>Enquanto isso, o Jogo Livre continua disponível com partidas ilimitadas.</p>
         </div>
       )}
 
       <p className="panel-footnote">
-        {championship.participantCount} {CHAMPIONSHIP_BRAND.participantLabelPlural} inscritos ate agora.
+        {championship.participantCount} {CHAMPIONSHIP_BRAND.participantLabelPlural} inscritos até agora.
       </p>
     </section>
   );

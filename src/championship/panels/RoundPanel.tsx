@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Keyboard } from "../../components/Keyboard";
 import type { GameStatus } from "../../types/game";
 import { getKeyboardStatus } from "../../utils/keyboardStatus";
+import { repairMojibake } from "../../utils/repairMojibake";
 import { ChampionshipBoardGrid, toBoardState } from "../components/ChampionshipBoardGrid";
 import { RoundProgress } from "../components/RoundProgress";
 import { CHAMPIONSHIP_MODE_LABEL } from "../config";
@@ -13,27 +14,38 @@ type RoundPanelProps = {
   round: ChampionshipRoundState;
   rounds: ChampionshipRoundState[];
   previousRound: ChampionshipRoundState | null;
+  /**
+   * Mantem o tabuleiro visivel depois que a modalidade fecha, sem aceitar
+   * digitacao. Serve para a animacao de revelacao da ultima linha terminar
+   * antes da comemoracao aparecer.
+   */
+  reviewMode?: boolean;
   busy: boolean;
   serverError: string | null;
   onStartRound: (roundId: string) => void;
   onSubmitAttempt: (roundId: string, word: string) => Promise<boolean>;
 };
 
+/**
+ * Durante a partida a tela mostra apenas mensagem, tabuleiro e teclado.
+ * Progresso das modalidades e status ficam no menu suspenso do cabecalho,
+ * exatamente como o Jogo Livre faz.
+ */
 export function RoundPanel({
   round,
   rounds,
   previousRound,
+  reviewMode = false,
   busy,
   serverError,
   onStartRound,
   onSubmitAttempt,
 }: RoundPanelProps) {
-  const started = round.status === "IN_PROGRESS";
-  const attemptsLeft = Math.max(round.maxAttempts - round.attemptsUsed, 0);
+  const started = round.status === "IN_PROGRESS" || reviewMode;
 
   const input = useRoundInput({
     roundId: round.id,
-    enabled: started && !busy,
+    enabled: started && !busy && !reviewMode,
     onSubmit: (word) => onSubmitAttempt(round.id, word),
   });
 
@@ -78,14 +90,23 @@ export function RoundPanel({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [input]);
 
-  const gameStatus: GameStatus = started ? "playing" : "won";
+  // Em revisao o tabuleiro fica congelado: sem linha de digitacao.
+  const gameStatus: GameStatus = reviewMode
+    ? round.allWordsSolved
+      ? "won"
+      : "lost"
+    : started
+      ? "playing"
+      : "won";
   const message = input.message.length > 0 ? input.message : (serverError ?? "");
 
   if (!started) {
     return (
       <section className="championship-panel" aria-labelledby="round-start-title">
         <header className="panel-header">
-          <h1 id="round-start-title">Modalidade {round.roundOrder} de {rounds.length}</h1>
+          <h1 id="round-start-title">
+            Modalidade {round.roundOrder} de {rounds.length}
+          </h1>
           <p className="panel-subtitle">{CHAMPIONSHIP_MODE_LABEL[round.mode]}</p>
         </header>
 
@@ -98,13 +119,15 @@ export function RoundPanel({
               {previousRound.wordsSolved}/{previousRound.boardCount} palavras ·{" "}
               {previousRound.attemptsUsed}/{previousRound.maxAttempts} tentativas ·{" "}
               {previousRound.totalScore} pontos
-              {previousRound.bonusScore > 0 ? ` (inclui ${previousRound.bonusScore} de bonus)` : ""}
+              {previousRound.bonusScore > 0
+                ? ` (inclui ${previousRound.bonusScore} de bonus)`
+                : ""}
             </p>
             {previousRound.boards.some((board) => board.answer !== null) ? (
               <p className="transition-answers">
                 Respostas:{" "}
                 {previousRound.boards
-                  .map((board) => board.answer ?? "?")
+                  .map((board) => (board.answer === null ? "?" : repairMojibake(board.answer)))
                   .join(", ")}
               </p>
             ) : null}
@@ -138,41 +161,18 @@ export function RoundPanel({
         >
           {busy ? "Abrindo..." : `Iniciar ${CHAMPIONSHIP_MODE_LABEL[round.mode]}`}
         </button>
-        {serverError !== null ? <p className="panel-error" role="alert">{serverError}</p> : null}
+        {serverError !== null ? (
+          <p className="panel-error" role="alert">
+            {serverError}
+          </p>
+        ) : null}
       </section>
     );
   }
 
   return (
-    <section className="championship-round" aria-labelledby="round-title">
-      <header className="round-header">
-        <h1 id="round-title" className="visually-hidden">
-          {CHAMPIONSHIP_MODE_LABEL[round.mode]}
-        </h1>
-        <RoundProgress rounds={rounds} currentRoundId={round.id} />
-        <div className="status-panel" aria-label="Situacao da modalidade">
-          <div>
-            <span>Modalidade</span>
-            <strong>{CHAMPIONSHIP_MODE_LABEL[round.mode]}</strong>
-          </div>
-          <div>
-            <span>Tentativas</span>
-            <strong>
-              {round.attemptsUsed}/{round.maxAttempts}
-            </strong>
-          </div>
-          <div>
-            <span>Restantes</span>
-            <strong>{attemptsLeft}</strong>
-          </div>
-          <div>
-            <span>Resolvidas</span>
-            <strong>
-              {round.wordsSolved}/{round.boardCount}
-            </strong>
-          </div>
-        </div>
-      </header>
+    <>
+      <h1 className="visually-hidden">{CHAMPIONSHIP_MODE_LABEL[round.mode]}</h1>
 
       <div
         className={message.length > 0 ? "message visible" : "message"}
@@ -190,15 +190,16 @@ export function RoundPanel({
         maxAttempts={round.maxAttempts}
         gameStatus={gameStatus}
         isRevealing={input.isRevealing}
+        invalidGuessId={input.invalidGuessId}
         revealingBoards={revealingBoards}
         onTileSelect={input.selectTile}
       />
 
       <Keyboard
         keyStatuses={keyboardStatuses}
-        disabled={busy || input.isRevealing}
+        disabled={busy || reviewMode || input.isRevealing}
         onKey={input.handleKey}
       />
-    </section>
+    </>
   );
 }

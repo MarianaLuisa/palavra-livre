@@ -9,7 +9,7 @@ import type { ChampionshipMode } from "./types";
  */
 export const CHAMPIONSHIP_BRAND = {
   /** Nome completo, usado em titulos e no texto de compartilhamento. */
-  name: "Campeonato Diario",
+  name: "Campeonato Diário",
   /** Nome curto, usado em botoes e navegacao. */
   shortName: "Campeonato",
   /** Como o participante e chamado. */
@@ -64,12 +64,23 @@ export const CHAMPIONSHIP_MAX_BASE_SCORE =
 
 export const CHAMPIONSHIP_STATUS_LABEL: Record<string, string> = {
   SCHEDULED: "Agendado",
-  REGISTRATION_OPEN: "Inscricoes abertas",
-  WAITING: "Sala de espera",
+  REGISTRATION_OPEN: "Inscrições abertas",
+  WAITING: "Aguardando início",
   IN_PROGRESS: "Em andamento",
   CALCULATING_RESULTS: "Apurando resultados",
-  FINISHED: "Encerrado",
+  FINISHED: "Finalizado",
   CANCELLED: "Cancelado",
+};
+
+/** O que acontece depois do status atual. Usado no painel administrativo. */
+export const CHAMPIONSHIP_NEXT_STEP_LABEL: Record<string, string> = {
+  SCHEDULED: "Abrir as inscrições",
+  REGISTRATION_OPEN: "Encerrar as inscrições",
+  WAITING: "Iniciar o campeonato",
+  IN_PROGRESS: "Aguardar os participantes concluírem",
+  CALCULATING_RESULTS: "Publicar a classificação",
+  FINISHED: "Criar o campeonato do próximo dia",
+  CANCELLED: "Criar um novo campeonato",
 };
 
 export const PARTICIPATION_STATUS_LABEL: Record<string, string> = {
@@ -81,9 +92,9 @@ export const PARTICIPATION_STATUS_LABEL: Record<string, string> = {
 };
 
 export const PARTICIPANT_ROUND_STATUS_LABEL: Record<string, string> = {
-  NOT_STARTED: "Nao iniciada",
+  NOT_STARTED: "Não iniciada",
   IN_PROGRESS: "Em andamento",
-  COMPLETED: "Concluida",
+  COMPLETED: "Concluída",
   FAILED: "Sem sucesso",
   EXPIRED: "Encerrada",
 };

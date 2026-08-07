@@ -9,7 +9,7 @@ export function getRandomWords(
   const uniqueWords = [...new Map(sourceWords.map((word) => [normalizeWord(word), word])).values()];
 
   if (count > uniqueWords.length) {
-    throw new Error("Nao ha palavras suficientes para sortear respostas unicas.");
+    throw new Error("Não há palavras suficientes para sortear respostas únicas.");
   }
 
   const shuffledWords = [...uniqueWords];

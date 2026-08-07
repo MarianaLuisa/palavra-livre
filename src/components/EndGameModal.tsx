@@ -56,7 +56,7 @@ export function EndGameModal({
     const result = createShareText(mode, status, attemptsUsed, boards);
 
     if (!("clipboard" in navigator)) {
-      setCopyMessage("Nao foi possivel acessar a area de transferencia.");
+      setCopyMessage("Não foi possível acessar a área de transferência.");
       return;
     }
 
@@ -76,7 +76,7 @@ export function EndGameModal({
           x
         </button>
         <p className="eyebrow">{config.label}</p>
-        <h2 id="end-game-title">{won ? "Vitoria!" : "Fim de jogo"}</h2>
+        <h2 id="end-game-title">{won ? "Vitória!" : "Fim de jogo"}</h2>
         <p className="modal-copy">
           {won
             ? `Todas as palavras foram resolvidas em ${attemptsUsed} tentativa${

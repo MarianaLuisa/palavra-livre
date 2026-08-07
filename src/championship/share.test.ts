@@ -14,7 +14,7 @@ describe("createChampionshipShareText", () => {
 
     expect(text).not.toContain("1.220");
     expect(text).not.toContain("3º");
-    expect(text).toContain("Resultados sao divulgados no encerramento");
+    expect(text).toContain("Resultados são divulgados no encerramento");
   });
 
   it("mostra o resumo completo depois do encerramento", () => {

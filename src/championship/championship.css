@@ -27,6 +27,17 @@
   grid-template-rows: auto minmax(0, 1fr);
 }
 
+.championship-page-shell {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.championship-page-shell.no-controls {
+  grid-template-rows: minmax(0, 1fr);
+}
+
 .site-header {
   display: flex;
   align-items: center;
@@ -36,17 +47,57 @@
   min-height: 3.1rem;
   padding: 0.45rem clamp(0.6rem, 2.5vw, 1.5rem);
   border-bottom: 1px solid var(--line);
-  background: var(--surface-strong);
+  background: var(--header-bg);
+  color: var(--header-text);
   position: sticky;
   top: 0;
   z-index: 15;
+}
+
+.free-play-game-shell .site-header,
+.championship-page-shell .site-header {
+  min-height: 2.65rem;
+  padding-block: 0.25rem;
+  gap: 0.45rem;
+}
+
+.free-play-game-shell .site-brand .brand-mark,
+.championship-page-shell .site-brand .brand-mark {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+.free-play-game-shell .site-nav-link,
+.championship-page-shell .site-nav-link {
+  padding: 0.28rem 0.58rem;
+  font-size: 0.78rem;
+}
+
+.free-play-game-shell .site-control-trigger,
+.championship-page-shell .site-control-trigger {
+  min-height: 1.95rem;
+  padding-block: 0.2rem;
+}
+
+.free-play-game-shell .site-header .tool-button,
+.championship-page-shell .site-header .tool-button {
+  min-height: 1.95rem;
+}
+
+.site-header .tool-button {
+  width: auto;
+  min-width: 4.75rem;
+  flex: 0 0 auto;
+  color: var(--header-text);
+  background: var(--header-chip-bg);
+  border-color: var(--header-line);
 }
 
 .site-brand {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--text);
+  color: var(--header-text);
   font-weight: 900;
   text-decoration: none;
 }
@@ -66,7 +117,7 @@
   padding: 0.4rem 0.75rem;
   border-radius: 0.45rem;
   border: 1px solid transparent;
-  color: var(--muted);
+  color: color-mix(in srgb, var(--header-text) 72%, transparent);
   font-weight: 800;
   font-size: 0.86rem;
   text-decoration: none;
@@ -74,14 +125,199 @@
 
 .site-nav-link:hover,
 .site-nav-link:focus-visible {
-  color: var(--text);
-  border-color: var(--line);
+  color: var(--header-text);
+  border-color: var(--header-line);
 }
 
 .site-nav-link.active {
+  color: var(--header-text);
+  background: var(--header-chip-bg);
+  border-color: var(--header-line);
+}
+
+.site-control-menu {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.site-control-trigger {
+  display: inline-grid;
+  gap: 0.04rem;
+  min-width: 6.5rem;
+  min-height: 2.25rem;
+  padding: 0.28rem 0.8rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--header-line);
+  color: var(--header-text);
+  background: var(--header-chip-bg);
+  cursor: pointer;
+  text-align: center;
+  font-weight: 900;
+}
+
+.site-control-trigger:hover,
+.site-control-trigger:focus-visible,
+.site-control-trigger[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--header-text) 50%, var(--header-line));
+  background: color-mix(in srgb, var(--header-chip-bg) 78%, var(--surface-soft));
+}
+
+.site-control-trigger span {
+  font-size: 0.82rem;
+  line-height: 1.05;
+}
+
+.site-control-trigger small {
+  max-width: 14rem;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--header-text) 76%, transparent);
+  font-size: 0.6rem;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.site-control-dropdown {
+  width: min(calc(100vw - 1rem), 54rem);
+  max-height: min(82vh, 34rem);
+  padding: 0.75rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--line-strong);
+  background: var(--menu-bg);
+  box-shadow: var(--shadow-strong);
   color: var(--text);
-  background: var(--surface-soft);
+  overflow: auto;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: calc(100% + 0.48rem);
+  left: 50%;
+  transform: translate(-50%, -0.25rem);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease,
+    visibility 140ms ease;
+  visibility: hidden;
+  z-index: 40;
+}
+
+.site-control-dropdown.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+  visibility: visible;
+}
+
+.site-control-content {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.site-control-content .mode-button {
+  background: var(--menu-mode-bg);
+  border-color: var(--line-soft);
+}
+
+.site-control-content .mode-button:hover:not(:disabled):not(.active) {
+  background: var(--menu-mode-hover);
+  border-color: var(--line);
+}
+
+.site-control-content .mode-button.active {
+  color: var(--text);
+  background: var(--menu-mode-active);
+  border-color: var(--line-strong);
+  box-shadow: inset 0 0 0 1px var(--line-subtle);
+}
+
+.site-control-content .mode-button.completed:not(.active) {
+  background: var(--menu-mode-completed);
   border-color: var(--accent);
+}
+
+.site-control-content .mode-button.completed small {
+  color: var(--accent);
+}
+
+.site-control-content .status-panel > div {
+  background: var(--menu-stat-bg);
+  border-color: var(--line-subtle);
+}
+
+.site-control-content .status-panel > div:nth-child(2) {
+  background: var(--surface-sunken);
+}
+
+.site-control-content .status-panel > div:nth-child(3) {
+  background: color-mix(in srgb, var(--menu-stat-bg) 78%, var(--surface-highlight));
+}
+
+.site-control-content .status-panel span {
+  color: var(--text-soft);
+}
+
+.site-control-content .status-panel strong {
+  color: var(--text);
+}
+
+.site-control-content > .secondary-button {
+  background: var(--menu-action-bg);
+  border-color: var(--line-soft);
+  color: var(--text);
+}
+
+.site-control-content > .secondary-button:hover:not(:disabled) {
+  background: var(--menu-action-hover);
+  border-color: var(--line);
+}
+
+.site-control-content > .secondary-button:disabled {
+  opacity: 1;
+  background: var(--menu-disabled-bg);
+  border-color: var(--line-subtle);
+  color: var(--menu-disabled-text);
+  transform: none;
+}
+
+.site-control-content .header-actions .tool-button {
+  background: var(--surface-sunken);
+  border-color: var(--line-subtle);
+  color: var(--text);
+}
+
+.site-control-content .header-actions .tool-button:nth-child(2) {
+  background: var(--menu-action-bg);
+}
+
+.site-control-content .header-actions .tool-button:hover:not(:disabled) {
+  background: var(--menu-action-hover);
+  border-color: var(--line);
+}
+
+.site-control-content .mode-selector,
+.site-control-content .round-progress,
+.site-control-content .status-panel {
+  width: 100%;
+}
+
+.free-play-header-controls .mode-selector {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.free-play-header-controls .status-panel {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.free-play-header-controls > .secondary-button {
+  width: 100%;
+  min-height: 2.5rem;
+}
+
+.championship-header-controls .status-panel {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .championship-layout {
@@ -92,6 +328,16 @@
   flex-direction: column;
   align-items: center;
   gap: 1rem;
+}
+
+.championship-play-layout {
+  padding: 0;
+  overflow: hidden;
+  gap: 0;
+}
+
+.championship-play-layout > .championship-panel {
+  margin: clamp(0.75rem, 2vh, 1.5rem) clamp(0.65rem, 2.5vw, 1.75rem);
 }
 
 /* ------------------------------------------------------------------ */
@@ -143,13 +389,14 @@
   gap: 0.85rem;
   padding: clamp(1rem, 3vw, 1.6rem);
   border-radius: 0.85rem;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--surface) 84%, var(--surface-strong));
   box-shadow: var(--shadow);
 }
 
 .home-card.highlight {
-  border-color: var(--accent);
+  border-color: var(--line-strong);
+  background: color-mix(in srgb, var(--surface) 76%, var(--accent-warm));
 }
 
 .home-card h2 {
@@ -206,8 +453,8 @@
   gap: 1rem;
   padding: clamp(1rem, 3vw, 1.75rem);
   border-radius: 0.85rem;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--surface) 90%, var(--surface-strong));
   box-shadow: var(--shadow);
 }
 
@@ -242,8 +489,9 @@
 }
 
 .status-chip.status-in_progress {
-  border-color: var(--green);
-  color: var(--green);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent-warm) 18%, var(--surface-soft));
 }
 
 .status-chip.status-registration_open {
@@ -275,8 +523,8 @@
 .panel-grid div {
   padding: 0.6rem 0.75rem;
   border-radius: 0.55rem;
-  background: var(--surface-soft);
-  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-raised) 54%, var(--surface-soft));
+  border: 1px solid var(--line-strong);
 }
 
 .panel-grid dt {
@@ -298,7 +546,7 @@
   padding: 0.75rem 0.9rem;
   border-radius: 0.55rem;
   border: 1px solid var(--line);
-  background: var(--surface-soft);
+  background: var(--surface-highlight);
   color: var(--muted);
   font-size: 0.9rem;
 }
@@ -342,7 +590,7 @@
   padding: 0 1rem;
   border-radius: 0.45rem;
   border: 1px solid var(--line);
-  background: transparent;
+  background: var(--surface-strong);
   color: var(--muted);
   font-weight: 800;
   cursor: pointer;
@@ -354,14 +602,14 @@
 .ghost-button:hover:not(:disabled) {
   color: var(--text);
   border-color: var(--accent);
+  background: var(--surface-highlight);
 }
 
+/* A centralizacao do rotulo mora em styles.css e vale para o site todo.
+   Aqui sobra apenas o alinhamento no painel: no desktop o botao ocupa
+   so a largura do proprio texto. No celular o responsivo.css estica. */
 .championship-panel .primary-button,
 .championship-panel .secondary-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
   align-self: flex-start;
 }
 
@@ -414,8 +662,8 @@
   gap: 0.2rem;
   padding: 1rem;
   border-radius: 0.7rem;
-  border: 1px solid var(--line);
-  background: var(--surface-soft);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-highlight);
 }
 
 .countdown-label {
@@ -433,7 +681,7 @@
 }
 
 .countdown-value.finished {
-  color: var(--green);
+  color: var(--accent);
 }
 
 .countdown-hint {
@@ -463,7 +711,7 @@
   padding: 0.45rem 0.3rem;
   border-radius: 0.5rem;
   border: 1px solid var(--line);
-  background: var(--surface-soft);
+  background: color-mix(in srgb, var(--surface-soft) 70%, var(--surface-strong));
   color: var(--muted);
   text-align: center;
 }
@@ -486,14 +734,17 @@
 
 .round-progress-item.current {
   border-color: var(--accent);
+  background: color-mix(in srgb, var(--surface-raised) 52%, var(--surface-soft));
+  color: var(--text);
 }
 
 .round-progress-item.done {
-  border-color: var(--green);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-warm) 22%, var(--surface-soft));
 }
 
 .round-progress-item.done .round-progress-label {
-  color: var(--green);
+  color: var(--text);
 }
 
 .round-progress-item.locked {
@@ -506,35 +757,89 @@
 
 .championship-round {
   width: 100%;
+  height: 100%;
   min-height: 0;
+  padding: clamp(0.32rem, 0.9vh, 0.7rem) clamp(0.55rem, 1.7vw, 1.45rem);
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   justify-items: center;
-  gap: clamp(0.32rem, 0.95vh, 0.78rem);
+  gap: clamp(0.24rem, 0.75vh, 0.58rem);
+  overflow: hidden;
 }
 
 .round-header {
   width: min(100%, 62rem);
   display: grid;
-  gap: 0.45rem;
+  gap: 0.28rem;
   justify-items: center;
 }
 
+.championship-round .round-progress {
+  width: min(100%, 54rem);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(0.24rem, 0.7vw, 0.42rem);
+}
+
+.championship-round .round-progress-item {
+  min-height: clamp(2rem, 4.6vh, 2.8rem);
+  padding: 0.26rem 0.38rem;
+  gap: 0.08rem;
+  border-radius: 0.45rem;
+}
+
+.championship-round .round-progress-order {
+  font-size: clamp(0.58rem, 1.2vw, 0.7rem);
+}
+
+.championship-round .round-progress-label {
+  font-size: clamp(0.68rem, 1.35vw, 0.82rem);
+}
+
+.championship-round .round-progress-status {
+  font-size: clamp(0.56rem, 1.15vw, 0.68rem);
+}
+
+.championship-round .status-panel {
+  width: min(100%, 54rem);
+  grid-template-columns: 1.15fr repeat(3, minmax(0, 0.85fr));
+  gap: clamp(0.24rem, 0.7vw, 0.42rem);
+}
+
+.championship-round .status-panel > div {
+  min-height: clamp(2rem, 4.2vh, 2.55rem);
+  padding: 0.28rem 0.48rem;
+}
+
+.championship-round .status-panel span {
+  font-size: clamp(0.55rem, 1.1vw, 0.66rem);
+}
+
+.championship-round .status-panel strong {
+  font-size: clamp(0.78rem, 1.45vw, 0.95rem);
+}
+
+.championship-round .message {
+  min-height: clamp(0.75rem, 1.55vh, 1rem);
+  position: relative;
+  z-index: 1;
+}
+
 .championship-round .board-grid {
-  height: auto;
-  min-height: 20rem;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .transition-summary {
   padding: 0.85rem 1rem;
   border-radius: 0.6rem;
-  border: 1px solid var(--green);
-  background: var(--surface-soft);
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent-warm) 16%, var(--surface-soft));
 }
 
 .transition-summary h2 {
   margin: 0 0 0.3rem;
-  color: var(--green);
+  color: var(--text);
   font-size: 1rem;
 }
 
@@ -545,7 +850,7 @@
 }
 
 .transition-answers {
-  margin-top: 0.35rem !important;
+  margin-top: 0.35rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 800;
@@ -591,7 +896,7 @@
 }
 
 .leaderboard-row.first td {
-  background: color-mix(in srgb, var(--yellow) 22%, transparent);
+  background: color-mix(in srgb, var(--accent-warm) 28%, transparent);
   font-weight: 900;
 }
 
@@ -624,6 +929,13 @@
 /* Podio e resultado                                                   */
 /* ------------------------------------------------------------------ */
 
+.results-panel {
+  width: min(100%, 62rem);
+  max-height: calc(100dvh - 5rem);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
 .podium {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -644,7 +956,8 @@
 }
 
 .podium-place.first {
-  border-color: var(--yellow);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-warm) 20%, var(--surface-soft));
   padding-block: 1.5rem;
 }
 
@@ -687,8 +1000,8 @@
   margin: 0;
   padding: 0.85rem 1rem;
   border-radius: 0.6rem;
-  border: 1px solid var(--yellow);
-  background: color-mix(in srgb, var(--yellow) 14%, transparent);
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent-warm) 18%, transparent);
   color: var(--text);
   font-size: 1rem;
 }
@@ -700,7 +1013,7 @@
   padding: 1rem;
   border-radius: 0.7rem;
   border: 1px solid var(--accent);
-  background: var(--surface-soft);
+  background: color-mix(in srgb, var(--surface-raised) 44%, var(--surface-soft));
 }
 
 .answers-list {
@@ -738,8 +1051,8 @@
 .history-card {
   padding: 0.95rem 1.1rem;
   border-radius: 0.7rem;
-  border: 1px solid var(--line);
-  background: var(--surface-soft);
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--surface-raised) 36%, var(--surface-soft));
 }
 
 .history-card header {
@@ -787,13 +1100,436 @@
   font-weight: 800;
 }
 
+/* ================================================================== */
+/* Painel administrativo                                               */
+/* ================================================================== */
+
+.admin-layout {
+  width: min(100%, 62rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ---- Cabecalho e botao principal --------------------------------- */
+
+.admin-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: clamp(1rem, 3vw, 1.75rem);
+  border-radius: 0.85rem;
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--surface) 82%, var(--surface-strong));
+  box-shadow: var(--shadow);
+}
+
+.admin-hero-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.admin-hero-header h1 {
+  margin: 0.2rem 0 0;
+  color: var(--text);
+  font-size: clamp(1.3rem, 4vw, 1.85rem);
+  text-transform: capitalize;
+}
+
+.admin-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.tag-chip {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-highlight);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tag-chip.official {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent-warm) 14%, var(--surface-soft));
+}
+
+.tag-chip.test {
+  border-color: var(--line-strong);
+  color: var(--text-soft);
+  background: color-mix(in srgb, var(--surface-raised) 18%, var(--surface-soft));
+}
+
+.tag-chip.warning {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.admin-next-step {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.5rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+.admin-next-step span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-next-step strong {
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
+.admin-hero-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.6rem;
+}
+
+.admin-hero-facts div {
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.5rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+.admin-hero-facts dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.admin-hero-facts dd {
+  margin: 0.2rem 0 0;
+  color: var(--text);
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+
+.value-warning {
+  color: var(--danger);
+}
+
+/* O botao mais importante do painel: destaque maior que todos os outros. */
+.start-now-button {
+  width: 100%;
+  min-height: 3.75rem;
+  padding: 0 1.25rem;
+  border: 0;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  color: #fff;
+  background: var(--surface-strong);
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-lift);
+  transition:
+    background 120ms ease,
+    transform 120ms ease,
+    border-color 120ms ease;
+}
+
+.start-now-button:hover:not(:disabled) {
+  background: var(--accent-warm);
+  transform: translateY(-2px);
+}
+
+.start-now-button:disabled {
+  cursor: progress;
+}
+
+.admin-start-unavailable {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.5rem;
+  border: 1px dashed var(--line-strong);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ---- Secoes ------------------------------------------------------- */
+
+.admin-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: clamp(0.9rem, 2.5vw, 1.35rem);
+  border-radius: 0.75rem;
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--surface) 88%, var(--surface-strong));
+}
+
+.admin-section h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.admin-section h3 {
+  margin: 0 0 0.4rem;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.admin-section-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.admin-feedback {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent-warm) 12%, var(--surface-soft));
+  color: var(--text);
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+/* ---- Horarios ----------------------------------------------------- */
+
+.admin-schedule-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.admin-field label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.admin-field-full {
+  grid-column: 1 / -1;
+}
+
+/* ---- Acoes rapidas ------------------------------------------------ */
+
+.admin-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.5rem;
+}
+
+.admin-quick-grid .ghost-button {
+  justify-content: center;
+  text-align: center;
+}
+
+/* ---- Rodadas ------------------------------------------------------ */
+
+.admin-rounds-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+  gap: 0.6rem;
+}
+
+.admin-round-card {
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-raised) 46%, var(--surface-soft));
+}
+
+.admin-round-card header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.admin-round-card header strong {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.admin-round-order {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: var(--accent-warm);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.admin-round-setup,
+.admin-round-answers {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.admin-round-progress {
+  margin: 0.6rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.3rem;
+  text-align: center;
+}
+
+.admin-round-progress dt {
+  color: var(--muted);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.admin-round-progress dd {
+  margin: 0.1rem 0 0;
+  color: var(--text);
+  font-weight: 900;
+  font-size: 1.05rem;
+}
+
+/* ---- Participantes ------------------------------------------------ */
+
+.admin-participants-table td,
+.admin-participants-table th {
+  font-size: 0.85rem;
+}
+
+.admin-answers-block {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.admin-previous {
+  opacity: 0.9;
+}
+
+/* ---- Zona de risco ------------------------------------------------ */
+
+.admin-danger-zone {
+  border-color: var(--danger);
+}
+
+.danger-button {
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--danger);
+  background: transparent;
+  color: var(--danger);
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.danger-button:hover:not(:disabled) {
+  color: #fff;
+  background: var(--danger);
+}
+
+.admin-footer-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-footer-note code {
+  font-size: 0.74rem;
+}
+
+/* ---- Confirmacao -------------------------------------------------- */
+
+.confirm-dialog h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.15rem;
+}
+
+.confirm-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.confirm-warning {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent-warm) 12%, var(--surface-soft));
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.confirm-actions {
+  justify-content: flex-end;
+}
+
 /* ------------------------------------------------------------------ */
 /* Responsivo                                                          */
 /* ------------------------------------------------------------------ */
 
 @media (max-width: 620px) {
+  .admin-hero-header {
+    flex-direction: column;
+  }
+
+  .admin-round-progress {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .confirm-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 620px) {
   .site-header {
     justify-content: center;
+  }
+
+  .site-header .tool-button {
+    width: auto;
+    min-width: 4.75rem;
   }
 
   .site-nav {
@@ -802,7 +1538,41 @@
     justify-content: center;
   }
 
-  .round-progress {
+  .site-control-menu {
+    order: 4;
+    width: 100%;
+  }
+
+  .site-control-trigger {
+    width: min(100%, 18rem);
+  }
+
+  .site-control-dropdown {
+    width: min(calc(100vw - 1rem), 36rem);
+  }
+
+  .free-play-header-controls .mode-selector,
+  .championship-header-controls .round-progress,
+  .free-play-header-controls .status-panel,
+  .championship-header-controls .status-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .round-progress,
+  .championship-round .round-progress {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .championship-play-layout {
+    padding: 0;
+  }
+
+  .championship-round {
+    padding-inline: 0.35rem;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+
+  .championship-round .status-panel {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -833,4 +1603,259 @@
   .countdown-value {
     transition: none;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Comemoracao de fim de modalidade                                    */
+/* ------------------------------------------------------------------ */
+
+.modal.round-done {
+  width: min(100%, 26rem);
+  gap: 0.75rem;
+  text-align: center;
+  justify-items: center;
+  border-color: var(--accent);
+  animation: round-done-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.modal.round-done.lost {
+  border-color: var(--line-strong);
+}
+
+@keyframes round-done-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.round-done-badge {
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--accent-strong);
+}
+
+.round-done.lost .round-done-badge {
+  background: var(--line-strong);
+}
+
+.round-done-badge svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.modal.round-done h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(1.35rem, 5vw, 1.75rem);
+}
+
+.modal.round-done .eyebrow {
+  margin: 0;
+}
+
+.round-done-stats {
+  width: 100%;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.round-done-stats div {
+  padding: 0.55rem 0.4rem;
+  border-radius: 0.55rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+.round-done-stats dt {
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.round-done-stats dd {
+  margin: 0.15rem 0 0;
+  color: var(--text);
+  font-weight: 900;
+  font-size: 1.15rem;
+}
+
+.round-done-stats .round-done-score {
+  border-color: var(--accent);
+}
+
+.round-done.lost .round-done-stats .round-done-score {
+  border-color: var(--line);
+}
+
+.round-done-stats .round-done-score dd {
+  color: var(--accent);
+}
+
+.round-done.lost .round-done-stats .round-done-score dd {
+  color: var(--text);
+}
+
+.round-done-bonus {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.round-done-bonus strong {
+  color: var(--accent);
+}
+
+.round-done-answers {
+  width: 100%;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.55rem;
+  border: 1px dashed var(--line-strong);
+  display: grid;
+  gap: 0.15rem;
+}
+
+.round-done-answers span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.round-done-answers strong {
+  color: var(--text);
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.modal.round-done .primary-button {
+  width: 100%;
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal.round-done {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Partida do campeonato dentro do shell do Jogo Livre                 */
+/* ------------------------------------------------------------------ */
+
+/* Mensagem, tabuleiro e teclado, nesta ordem. Nada de navegacao fixa. */
+.app-shell > .game-layout {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+/* Progresso das modalidades dentro do menu suspenso. */
+.header-menu .round-progress {
+  width: 100%;
+}
+
+.menu-brand-note {
+  grid-column: 1 / -1;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-align: center;
+}
+
+.header-menu .header-actions .tool-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Aba de jogadores                                                    */
+/* ------------------------------------------------------------------ */
+
+.admin-tabs {
+  margin-bottom: 0.25rem;
+}
+
+.admin-players-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.admin-players-toolbar .text-input {
+  flex: 1 1 14rem;
+  min-width: 12rem;
+}
+
+.admin-players-table tbody tr {
+  cursor: pointer;
+}
+
+.admin-players-table tbody tr:hover,
+.admin-player-row:focus-visible {
+  background: var(--surface-soft);
+}
+
+.admin-player-row.open {
+  background: var(--surface-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.admin-player-tag {
+  margin-left: 0.4rem;
+  font-size: 0.64rem;
+}
+
+@media (max-width: 620px) {
+  .admin-players-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Atalho da administracao na tela do campeonato                       */
+/* ------------------------------------------------------------------ */
+
+.admin-quick-create {
+  width: min(100%, 56rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: clamp(0.9rem, 2.5vw, 1.35rem);
+  border-radius: 0.75rem;
+  border: 1px dashed var(--accent);
+  background: var(--surface-soft);
+}
+
+.admin-quick-create header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-quick-create h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.championship-panel > .admin-quick-create {
+  width: 100%;
 }

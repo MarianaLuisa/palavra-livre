@@ -19,8 +19,8 @@ const PLACE_CLASS: Record<number, string> = {
 };
 
 const PLACE_LABEL: Record<number, string> = {
-  1: "Campeao do dia",
-  2: "Vice-campeao",
+  1: "Campeão do dia",
+  2: "Vice-campeão",
   3: "Terceiro lugar",
 };
 
@@ -35,7 +35,7 @@ export function Podium({ places, highlightName = null }: PodiumProps) {
     .filter((place): place is PodiumPlace => place !== undefined);
 
   return (
-    <section className="podium" aria-label="Podio do campeonato">
+    <section className="podium" aria-label="Pódio do campeonato">
       {displayOrder.map((place) => (
         <article
           key={place.position}

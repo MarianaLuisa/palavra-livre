@@ -25,6 +25,7 @@ type UseRoundInputResult = {
   isRevealing: boolean;
   message: string;
   messageId: number;
+  invalidGuessId: number;
   selectTile: (index: number) => void;
   handleKey: (key: string) => boolean;
   clearMessage: () => void;
@@ -46,6 +47,7 @@ export function useRoundInput({
   const [isRevealing, setIsRevealing] = useState(false);
   const [message, setMessage] = useState("");
   const [messageId, setMessageId] = useState(0);
+  const [invalidGuessId, setInvalidGuessId] = useState(0);
   const revealTimeoutRef = useRef<number | null>(null);
   const submittingRef = useRef(false);
 
@@ -54,6 +56,7 @@ export function useRoundInput({
     setLetters(createEmptyGuess());
     setActiveTileIndex(0);
     setMessage("");
+    setInvalidGuessId(0);
   }, [roundId]);
 
   useEffect(() => {
@@ -69,13 +72,21 @@ export function useRoundInput({
     setMessageId((previousId) => previousId + 1);
   }, []);
 
+  const showGuessError = useCallback(
+    (text: string) => {
+      showMessage(text);
+      setInvalidGuessId((previousId) => previousId + 1);
+    },
+    [showMessage],
+  );
+
   const submit = useCallback(async () => {
     if (!enabled || submittingRef.current || isRevealing) {
       return;
     }
 
     if (!isCompleteGuess(letters)) {
-      showMessage("Complete a palavra.");
+      showGuessError("Complete a palavra.");
       return;
     }
 
@@ -85,12 +96,14 @@ export function useRoundInput({
     submittingRef.current = false;
 
     if (!accepted) {
+      setInvalidGuessId((previousId) => previousId + 1);
       return;
     }
 
     setLetters(createEmptyGuess());
     setActiveTileIndex(0);
     setMessage("");
+    setInvalidGuessId(0);
     setIsRevealing(true);
 
     if (revealTimeoutRef.current !== null) {
@@ -101,7 +114,7 @@ export function useRoundInput({
       setIsRevealing(false);
       revealTimeoutRef.current = null;
     }, REVEAL_TOTAL_MS);
-  }, [enabled, isRevealing, letters, onSubmit, showMessage]);
+  }, [enabled, isRevealing, letters, onSubmit, showGuessError]);
 
   const handleKey = useCallback(
     (key: string): boolean => {
@@ -121,6 +134,7 @@ export function useRoundInput({
           return result.letters;
         });
         setMessage("");
+        setInvalidGuessId(0);
         return true;
       }
 
@@ -143,6 +157,7 @@ export function useRoundInput({
           return result.letters;
         });
         setMessage("");
+        setInvalidGuessId(0);
         return true;
       }
 
@@ -158,6 +173,7 @@ export function useRoundInput({
       }
 
       setActiveTileIndex(clampTileIndex(index));
+      setInvalidGuessId(0);
     },
     [enabled, isRevealing],
   );
@@ -168,6 +184,7 @@ export function useRoundInput({
     isRevealing,
     message,
     messageId,
+    invalidGuessId,
     selectTile,
     handleKey,
     clearMessage: useCallback(() => setMessage(""), []),

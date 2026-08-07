@@ -7,6 +7,7 @@ type RowProps = {
   isCurrent?: boolean;
   isEvaluated?: boolean;
   isRevealing?: boolean;
+  isInvalid?: boolean;
   activeTileIndex?: number;
   onTileSelect?: (index: number) => void;
 };
@@ -16,6 +17,7 @@ export function Row({
   isCurrent = false,
   isEvaluated = false,
   isRevealing = false,
+  isInvalid = false,
   activeTileIndex = 0,
   onTileSelect,
 }: RowProps) {
@@ -26,6 +28,7 @@ export function Row({
     "row",
     isCurrent ? "current" : "",
     isEvaluated ? "evaluated" : "",
+    isInvalid ? "invalid" : "",
   ]
     .filter(Boolean)
     .join(" ");

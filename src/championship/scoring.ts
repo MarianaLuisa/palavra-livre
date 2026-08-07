@@ -42,7 +42,7 @@ export function calculateRoundScore(
     totalWords < 0 ||
     wordsSolved > totalWords
   ) {
-    throw new Error("Entrada invalida para o calculo de pontuacao.");
+    throw new Error("Entrada inválida para o cálculo de pontuação.");
   }
 
   const attemptsLeft = Math.max(maxAttempts - attemptsUsed, 0);

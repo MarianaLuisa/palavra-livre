@@ -5,8 +5,11 @@ type HeaderProps = {
   theme: ThemeMode;
   summary: string;
   children: ReactNode;
-  onOpenRules: () => void;
-  onOpenStats: () => void;
+  /** Botoes proprios do Jogo Livre. Omitidos, nao aparecem. */
+  onOpenRules?: () => void;
+  onOpenStats?: () => void;
+  /** Acoes extras dentro do menu, usadas pelo campeonato. */
+  actions?: ReactNode;
   onToggleTheme: () => void;
 };
 
@@ -16,6 +19,7 @@ export function Header({
   children,
   onOpenRules,
   onOpenStats,
+  actions,
   onToggleTheme,
 }: HeaderProps) {
   const nextThemeLabel = theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro";
@@ -83,23 +87,28 @@ export function Header({
         onClick={closeAfterModeClick}
       >
         {children}
-        <nav className="header-actions" aria-label="Acoes do jogo">
-          <button
-            className="tool-button"
-            type="button"
-            onClick={() => runMenuAction(onOpenRules)}
-            aria-label="Abrir regras"
-          >
-            Regras
-          </button>
-          <button
-            className="tool-button"
-            type="button"
-            onClick={() => runMenuAction(onOpenStats)}
-            aria-label="Abrir estatisticas"
-          >
-            Estatisticas
-          </button>
+        {actions}
+        <nav className="header-actions" aria-label="Ações do jogo">
+          {onOpenRules !== undefined ? (
+            <button
+              className="tool-button"
+              type="button"
+              onClick={() => runMenuAction(onOpenRules)}
+              aria-label="Abrir regras"
+            >
+              Regras
+            </button>
+          ) : null}
+          {onOpenStats !== undefined ? (
+            <button
+              className="tool-button"
+              type="button"
+              onClick={() => runMenuAction(onOpenStats)}
+              aria-label="Abrir estatísticas"
+            >
+              Estatísticas
+            </button>
+          ) : null}
           <button
             className="tool-button icon-button"
             type="button"

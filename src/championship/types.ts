@@ -206,34 +206,92 @@ export type AdminRoundOverview = {
   boardCount: number;
   maxAttempts: number;
   status: "PENDING" | "ACTIVE" | "CLOSED";
+  startsAt: string | null;
+  endsAt: string | null;
   answerCount: number;
-  answers: string[] | null;
+  /** Participantes que ainda nao abriram esta modalidade. */
+  notStarted: number;
+  /** Participantes jogando esta modalidade agora. */
+  inProgress: number;
+  /** Participantes que ja fecharam esta modalidade. */
+  completed: number;
+};
+
+export type AdminChampionship = {
+  id: string;
+  name: string;
+  championshipDate: string;
+  timezone: string;
+  status: ChampionshipStatus;
+  isOfficial: boolean;
+  registrationOpensAt: string;
+  registrationClosesAt: string;
+  startsAt: string;
+  finishedAt: string | null;
+  createdAt: string;
+  /** Instante real em que a primeira rodada foi ativada. */
+  actualStartedAt: string | null;
+  answerCount: number;
+  expectedAnswerCount: number;
+};
+
+export type AdminParticipant = {
+  id: string;
+  displayName: string;
+  status: ParticipationStatus;
+  registeredAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  completedRounds: number;
+  wordsSolved: number;
+  totalScore: number;
+  totalAttempts: number;
+  totalDurationMs: number;
+  finalPosition: number | null;
+  /** Modalidade que a pessoa esta jogando agora, se houver. */
+  currentRoundMode: ChampionshipMode | null;
+  currentRoundOrder: number | null;
+};
+
+export type AdminCounters = {
+  registered: number;
+  started: number;
+  playing: number;
+  finished: number;
+  abandoned: number;
 };
 
 export type AdminOverview = {
-  championship: {
-    id: string;
-    name: string;
-    championship_date: string;
-    status: ChampionshipStatus;
-    registration_opens_at: string;
-    registration_closes_at: string;
-    starts_at: string;
-    finished_at: string | null;
-    timezone: string;
-  } | null;
+  /** Horario oficial do servidor. O painel nunca usa o relogio do navegador. */
+  serverNow: string;
+  /** Data de hoje no fuso do campeonato. */
+  today: string;
+  timezone: string;
+  /** Existe campeonato oficial criado para hoje. */
+  hasChampionshipToday: boolean;
+  /** O campeonato exibido e o de hoje. */
+  isToday: boolean;
+  championship: AdminChampionship | null;
+  counters: AdminCounters;
   rounds: AdminRoundOverview[];
-  participants: Array<{
-    id: string;
-    displayName: string;
-    status: ParticipationStatus;
-    registeredAt: string;
-    completedRounds: number;
-    totalScore: number;
-    finalPosition: number | null;
-  }>;
+  participants: AdminParticipant[];
   wordPoolSize?: number;
   validWordCount?: number;
+};
+
+/** Respostas do campeonato, obtidas por RPC dedicada apos o encerramento. */
+export type AdminRoundAnswers = {
+  roundId: string;
+  mode: ChampionshipMode;
+  roundOrder: number;
+  answers: string[];
+};
+
+/** Horarios editaveis, ja em instantes absolutos (ISO 8601). */
+export type ChampionshipSchedule = {
+  registrationOpensAt: string;
+  registrationClosesAt: string;
+  startsAt: string;
 };
 
 /** Ponte entre a modalidade do campeonato e o modo do jogo livre. */
@@ -249,4 +307,57 @@ export const GAME_MODE_TO_CHAMPIONSHIP_MODE: Record<GameMode, ChampionshipMode> 
   duet: "DUET",
   quartet: "QUARTET",
   sextet: "SEXTET",
+};
+
+/** Linha da aba de jogadores no painel administrativo. */
+export type AdminPlayer = {
+  userId: string;
+  username: string | null;
+  displayName: string;
+  createdAt: string;
+  /** Conta com e-mail e senha. O e-mail em si nunca chega ao frontend. */
+  isPermanent: boolean;
+  isAdmin: boolean;
+  dailyGoal: number;
+
+  games: number;
+  completedGames: number;
+  completionRate: number;
+  wordsSolved: number;
+  attempts: number;
+  durationMs: number;
+  activeDays: number;
+  lastPlayedDate: string | null;
+
+  championshipsPlayed: number;
+  championshipWins: number;
+  championshipPodiums: number;
+  championshipBestPosition: number | null;
+  championshipBestScore: number;
+  lastChampionshipDate: string | null;
+};
+
+/** Partida na linha do tempo de um jogador, das duas origens. */
+export type AdminPlayerGameEntry = {
+  source: "FREE_PLAY" | "CHAMPIONSHIP";
+  date: string;
+  finishedAt: string | null;
+  mode: ChampionshipMode | null;
+  attemptsUsed: number;
+  maxAttempts: number | null;
+  wordsSolved: number;
+  wordsTotal: number;
+  completed: boolean;
+  durationMs: number;
+  position: number | null;
+  totalScore: number | null;
+  completedRounds?: number;
+  championshipStatus?: string;
+};
+
+export type AdminPlayerHistory = {
+  userId: string;
+  username: string | null;
+  displayName: string;
+  entries: AdminPlayerGameEntry[];
 };

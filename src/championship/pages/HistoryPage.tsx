@@ -5,6 +5,7 @@ import { formatDate, formatDuration, formatPosition, formatScore } from "../form
 import { getChampionshipService } from "../service";
 import type { ChampionshipHistoryItem, ChampionshipPlayerStats } from "../types";
 import { Link } from "../../router/router";
+import { repairMojibakeList } from "../../utils/repairMojibake";
 
 export function HistoryPage() {
   const [history, setHistory] = useState<ChampionshipHistoryItem[]>([]);
@@ -53,11 +54,11 @@ export function HistoryPage() {
   return (
     <section className="championship-panel" aria-labelledby="history-title">
       <header className="panel-header">
-        <h1 id="history-title">Historico</h1>
-        <p className="panel-subtitle">Campeonatos anteriores, campeoes e palavras usadas.</p>
+        <h1 id="history-title">Histórico</h1>
+        <p className="panel-subtitle">Campeonatos anteriores, campeões e palavras usadas.</p>
       </header>
 
-      {loading ? <p className="loading-state">Carregando historico...</p> : null}
+      {loading ? <p className="loading-state">Carregando histórico...</p> : null}
       {error !== null ? (
         <p className="panel-error" role="alert">
           {error}
@@ -66,30 +67,30 @@ export function HistoryPage() {
 
       {stats !== null && stats.championshipsPlayed > 0 ? (
         <section aria-labelledby="my-stats-title">
-          <h2 id="my-stats-title">Suas estatisticas</h2>
+          <h2 id="my-stats-title">Suas estatísticas</h2>
           <dl className="panel-grid">
             <div>
               <dt>Campeonatos</dt>
               <dd>{stats.championshipsPlayed}</dd>
             </div>
             <div>
-              <dt>Vitorias</dt>
+              <dt>Vitórias</dt>
               <dd>{stats.wins}</dd>
             </div>
             <div>
-              <dt>Podios</dt>
+              <dt>Pódios</dt>
               <dd>{stats.podiums}</dd>
             </div>
             <div>
-              <dt>Melhor pontuacao</dt>
+              <dt>Melhor pontuação</dt>
               <dd>{formatScore(stats.bestScore)}</dd>
             </div>
             <div>
-              <dt>Media de pontos</dt>
+              <dt>Média de pontos</dt>
               <dd>{formatScore(stats.averageScore)}</dd>
             </div>
             <div>
-              <dt>Media de colocacao</dt>
+              <dt>Média de colocação</dt>
               <dd>{stats.averagePosition === 0 ? "-" : stats.averagePosition}</dd>
             </div>
             <div>
@@ -130,7 +131,7 @@ export function HistoryPage() {
 
             {item.myResult !== null ? (
               <p className="history-mine">
-                Voce: {formatPosition(item.myResult.position)} ·{" "}
+                Você: {formatPosition(item.myResult.position)} ·{" "}
                 {formatScore(item.myResult.totalScore)} pts · {item.myResult.wordsSolved}/13
                 palavras
               </p>
@@ -138,7 +139,7 @@ export function HistoryPage() {
 
             <details>
               <summary>Palavras usadas</summary>
-              <p className="answers-inline">{item.answers.join(", ")}</p>
+              <p className="answers-inline">{repairMojibakeList(item.answers).join(", ")}</p>
             </details>
           </li>
         ))}

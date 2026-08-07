@@ -53,6 +53,26 @@ export type SavedGameProgress = {
   attempt: number;
   status: GameStatus;
   updatedAt: string;
+  /**
+   * Identificador da partida, criado quando ela comeca.
+   * Opcional para nao invalidar progresso salvo antes desta versao.
+   * Sobrevive ao refresh, o que torna o registro no servidor idempotente.
+   */
+  gameId?: string;
+  /** Inicio da partida, usado para calcular a duracao. */
+  startedAt?: string;
+};
+
+/** Resultado de uma partida concluida, entregue a quem quiser persistir. */
+export type FinishedGamePayload = {
+  gameId: string;
+  mode: GameMode;
+  status: Exclude<GameStatus, "playing">;
+  attemptsUsed: number;
+  wordsSolved: number;
+  wordsTotal: number;
+  startedAt: string | null;
+  finishedAt: string;
 };
 
 export type StoredGameProgress = Partial<Record<GameMode, SavedGameProgress>>;

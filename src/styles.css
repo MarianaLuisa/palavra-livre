@@ -1,55 +1,326 @@
+﻿/* =========================================================
+   PALAVRA LIVRE â€” UI SYSTEM MALVA / AMEIXA
+   Objetivo:
+   - contraste por camadas, nÃ£o por brilho;
+   - cards claramente diferentes do painel que os contÃ©m;
+   - sem rosa neon / sem glow;
+   - verde e amarelo SOMENTE nos estados das letras;
+   - tiles do jogo sempre mais escuros que o plano de fundo.
+   ========================================================= */
+
 :root {
   color-scheme: dark;
+
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  background: #6f6066;
-  color: #fffaf7;
-  --background: #6f6066;
-  --surface: #62545b;
-  --surface-strong: #55494f;
-  --surface-soft: #66585f;
-  --line: #7a6a71;
-  --line-strong: #9a8c94;
-  --text: #fffaf7;
-  --muted: #ddcfd6;
-  --green: #42a99b;
-  --yellow: #d9b86b;
-  --gray: #30282e;
-  --accent: #ddd0da;
-  --accent-strong: #776278;
-  --accent-warm: #62515e;
-  --danger: #d98285;
-  --key-bg: #463b42;
-  --key-bg-strong: #51454c;
-  --key-used-bg: #51464d;
-  --key-line: #62565d;
-  --key-action: #463b42;
-  --key-action-strong: #51454c;
-  --shadow: 0 18px 36px rgb(36 30 36 / 32%);
+
+  background: #6b5c62;
+  color: #fff9fb;
+
+  /* =========================================================
+     CAMADAS / ELEVAÃ‡ÃƒO
+     ========================================================= */
+
+  /* Fundo geral */
+  --background: #6b5c62;
+
+  /* PainÃ©is grandes */
+  --surface: #5b4d54;
+
+  /* Blocos escuros internos / status */
+  --surface-strong: #3b3237;
+
+  /* Cards internos */
+  --surface-soft: #705f67;
+
+  /* Cards elevados / destaque */
+  --surface-raised: #806c75;
+
+  /* Inputs / Ã¡reas rebaixadas */
+  --surface-sunken: #312a2e;
+
+  /* Destaque estrutural discreto */
+  --surface-highlight: #68575f;
+
+  /* =========================================================
+     BORDAS
+     ========================================================= */
+
+  --line: #8c7880;
+  --line-strong: #c6b5bd;
+  --line-subtle: rgb(255 249 251 / 10%);
+  --line-soft: rgb(255 249 251 / 16%);
+
+  /* =========================================================
+     TEXTO
+     ========================================================= */
+
+  --text: #fff9fb;
+  --muted: #e4d7dc;
+  --text-soft: #cabac1;
+  --text-faint: rgb(255 249 251 / 32%);
+
+  /* =========================================================
+     IDENTIDADE MALVA / AMEIXA
+     ========================================================= */
+
+  --accent: #d4c3cb;
+  --accent-strong: #7f6572;
+  --accent-warm: #604955;
+  --accent-hover: #917783;
+  --streak-accent: #c67892;
+
+  /* Compatibilidade para componentes antigos:
+     estes tokens NÃƒO sÃ£o verde/amarelo visualmente. */
+  --green: #7f6572;
+  --yellow: #927a84;
+
+  /* =========================================================
+     CORES EXCLUSIVAS DO JOGO
+     ========================================================= */
+
+  --game-correct: #4ea99b;
+  --game-present: #d2aa61;
+  --game-absent: #292428;
+  --gray: #292428;
+
+  /* Tiles vazios/preenchidos ficam mais escuros que a pÃ¡gina */
+  --tile-bg: #4f4449;
+  --tile-bg-filled: #5a4c53;
+
+  /* =========================================================
+     ALERTA
+     ========================================================= */
+
+  --danger: #c87983;
+
+  /* =========================================================
+     TECLADO
+     ========================================================= */
+
+  /* tecla ainda nÃ£o testada */
+  --key-bg: #3d3439;
+  --key-bg-strong: #4a3f45;
+
+  /* letra jÃ¡ testada e AUSENTE: propositalmente muito mais escura
+     que o plano de fundo para nÃ£o se confundir com ele */
+  --key-used-bg: #2b2729;
+
+  --key-line: #6a5a62;
+  --key-action: #3d3439;
+  --key-action-strong: #52464d;
+
+  /* =========================================================
+     CABEÃ‡ALHO
+     ========================================================= */
+
+  --header-bg: #242123;
+  --header-chip-bg: #4a3d44;
+  --header-text: #fff9fb;
+  --header-line: rgb(255 249 251 / 13%);
+
+  /* =========================================================
+     MENU SUSPENSO "PARTIDA"
+     Hierarquia propositalmente diferente entre grupos.
+     ========================================================= */
+
+  --menu-bg: #51454b;
+  --menu-mode-bg: #695862;
+  --menu-mode-hover: #74626b;
+  --menu-mode-active: #8a717e;
+  --menu-mode-completed: #463b41;
+
+  --menu-stat-bg: #342d31;
+
+  --menu-action-bg: #43393f;
+  --menu-action-hover: #51454c;
+
+  --menu-disabled-bg: #5e5058;
+  --menu-disabled-text: #bcaeb5;
+
+  /* =========================================================
+     MODOS / TABULEIRO
+     ========================================================= */
+
+  --mode-bg: #5f5058;
+
+  --tile-line: #77676e;
+  --tile-line-hover: #918089;
+  --tile-line-filled: #a29098;
+  --tile-line-active: #d2c2ca;
+
+  /* =========================================================
+     MODAIS / SOMBRAS
+     ========================================================= */
+
+  --backdrop: rgb(34 28 32 / 40%);
+
+  --shadow: 0 18px 38px rgb(39 30 35 / 24%);
+  --shadow-strong: 0 1.25rem 3.25rem rgb(34 26 30 / 30%);
+  --shadow-lift: 0 8px 20px rgb(34 26 30 / 20%);
 }
+
 
 :root[data-theme="light"] {
   color-scheme: light;
-  background: #f5f3ee;
-  color: #22242b;
-  --background: #f5f3ee;
-  --surface: #ffffff;
-  --surface-strong: #ebe8df;
-  --surface-soft: #f9f7f2;
-  --line: #d6d0c2;
-  --line-strong: #aaa394;
-  --text: #22242b;
-  --muted: #666b78;
-  --green: #558d52;
-  --yellow: #b89838;
-  --gray: #777b83;
-  --accent: #247f80;
-  --accent-strong: #694ee7;
-  --accent-warm: #b65541;
-  --danger: #a33c32;
-  --shadow: 0 22px 70px rgb(83 74 55 / 18%);
+
+  background: #dfd2d8;
+  color: #342a30;
+
+  --background: #dfd2d8;
+
+  --surface: #efe5e9;
+  --surface-strong: #bdaab4;
+  --surface-soft: #d2c1c8;
+  --surface-raised: #fbf5f7;
+  --surface-sunken: #a8949e;
+  --surface-highlight: #e5d9df;
+
+  --line: #a8929d;
+  --line-strong: #76616c;
+  --line-subtle: rgb(52 42 48 / 9%);
+  --line-soft: rgb(52 42 48 / 15%);
+
+  --text: #342a30;
+  --muted: #65555d;
+  --text-soft: #7b6872;
+  --text-faint: rgb(52 42 48 / 30%);
+
+  --accent: #765f6b;
+  --accent-strong: #684a59;
+  --accent-warm: #543d49;
+  --accent-hover: #745666;
+  --streak-accent: #8d5068;
+
+  --green: #684a59;
+  --yellow: #846c77;
+
+  --game-correct: #439d90;
+  --game-present: #c79f55;
+  --game-absent: #332c30;
+  --gray: #332c30;
+
+  /* Mesmo no tema claro, tabuleiro e teclas continuam escuros */
+  --tile-bg: #574951;
+  --tile-bg-filled: #62535b;
+
+  --danger: #a84d59;
+
+  --key-bg: #40373c;
+  --key-bg-strong: #4e4249;
+  --key-used-bg: #302a2e;
+  --key-line: #6b5962;
+  --key-action: #40373c;
+  --key-action-strong: #51464c;
+
+  --header-bg: #30282d;
+  --header-chip-bg: #4a3b43;
+  --header-text: #fff9fb;
+  --header-line: rgb(255 249 251 / 16%);
+
+  --menu-bg: #eadfe4;
+  --menu-mode-bg: #d1bec7;
+  --menu-mode-hover: #c7b2bc;
+  --menu-mode-active: #7d6471;
+  --menu-mode-completed: #b8a2ad;
+
+  --menu-stat-bg: #51444b;
+
+  --menu-action-bg: #5a4a52;
+  --menu-action-hover: #684f5c;
+
+  --menu-disabled-bg: #cdbdc5;
+  --menu-disabled-text: #76646d;
+
+  --mode-bg: #d9cbd2;
+
+  --tile-line: #79656f;
+  --tile-line-hover: #8c7580;
+  --tile-line-filled: #9d858f;
+  --tile-line-active: #c2a8b4;
+
+  --backdrop: rgb(46 37 42 / 22%);
+
+  --shadow: 0 18px 36px rgb(83 62 72 / 13%);
+  --shadow-strong: 0 1.25rem 3.5rem rgb(71 52 61 / 18%);
+  --shadow-lift: 0 8px 20px rgb(71 52 61 / 15%);
 }
+
+:root[data-theme="light"] .keyboard-key,
+:root[data-theme="light"] .keyboard-key.empty {
+  color: #fff9fb;
+}
+
+:root[data-theme="light"] .keyboard-key.absent {
+  color: rgb(255 249 251 / 32%);
+}
+
+:root[data-theme="light"] .panel-grid div,
+:root[data-theme="light"] .admin-hero-facts div,
+:root[data-theme="light"] .admin-next-step,
+:root[data-theme="light"] .admin-round-card,
+:root[data-theme="light"] .stat-grid div,
+:root[data-theme="light"] .mode-card,
+:root[data-theme="light"] .comparison-list div,
+:root[data-theme="light"] .join-account,
+:root[data-theme="light"] .stats-card,
+:root[data-theme="light"] .metric-card,
+:root[data-theme="light"] .summary-card,
+:root[data-theme="light"] .performance-card,
+:root[data-theme="light"] .result-card,
+:root[data-theme="light"] .championship-card,
+:root[data-theme="light"] .stat-card,
+:root[data-theme="light"] .round-done-stats div,
+:root[data-theme="light"] .home-summary-grid > div {
+  background: #684a59;
+  border-color: #8f7581;
+  color: #fff9fb;
+}
+
+:root[data-theme="light"] .panel-grid dt,
+:root[data-theme="light"] .admin-hero-facts dt,
+:root[data-theme="light"] .stat-grid dt,
+:root[data-theme="light"] .mode-card dt,
+:root[data-theme="light"] .comparison-list dt,
+:root[data-theme="light"] .stats-card dt,
+:root[data-theme="light"] .metric-card dt,
+:root[data-theme="light"] .summary-card dt,
+:root[data-theme="light"] .performance-card dt,
+:root[data-theme="light"] .result-card dt,
+:root[data-theme="light"] .championship-card dt,
+:root[data-theme="light"] .stat-card dt,
+:root[data-theme="light"] .round-done-stats dt,
+:root[data-theme="light"] .home-summary-grid dt,
+:root[data-theme="light"] .join-account span,
+:root[data-theme="light"] .admin-next-step span {
+  color: #eadfe4;
+}
+
+:root[data-theme="light"] .panel-grid dd,
+:root[data-theme="light"] .admin-hero-facts dd,
+:root[data-theme="light"] .stat-grid dd,
+:root[data-theme="light"] .mode-card dd,
+:root[data-theme="light"] .comparison-list dd,
+:root[data-theme="light"] .stats-card dd,
+:root[data-theme="light"] .metric-card dd,
+:root[data-theme="light"] .summary-card dd,
+:root[data-theme="light"] .performance-card dd,
+:root[data-theme="light"] .result-card dd,
+:root[data-theme="light"] .championship-card dd,
+:root[data-theme="light"] .stat-card dd,
+:root[data-theme="light"] .round-done-stats dd,
+:root[data-theme="light"] .home-summary-grid dd,
+:root[data-theme="light"] .join-account strong,
+:root[data-theme="light"] .admin-next-step strong,
+:root[data-theme="light"] .mode-card header strong {
+  color: #fff9fb;
+}
+
+:root[data-theme="light"] .mode-card header span {
+  color: #eadfe4;
+}
+
 
 * {
   box-sizing: border-box;
@@ -67,6 +338,7 @@ body,
 body {
   margin: 0;
   background: var(--background);
+  color: var(--text);
   overflow: hidden;
 }
 
@@ -76,13 +348,18 @@ button {
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.68;
+  opacity: 0.58;
 }
 
 button:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
+
+
+/* =========================================================
+   APP
+   ========================================================= */
 
 .app-shell {
   height: 100dvh;
@@ -93,17 +370,35 @@ button:focus-visible {
   overflow: hidden;
 }
 
+.free-play-shell,
+.championship-game-shell {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.free-play-game-shell {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
 .app-header {
   min-height: 3.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0.35rem clamp(0.55rem, 2vw, 1.25rem);
-  border-bottom: 1px solid var(--line);
-  background: #1f2022;
+  border-bottom: 1px solid var(--header-line);
+  background: var(--header-bg);
   position: sticky;
   top: 0;
   z-index: 15;
+  color: var(--header-text);
 }
 
 .header-summary {
@@ -115,9 +410,9 @@ button:focus-visible {
   gap: 0.75rem;
   padding: 0.25rem 0.35rem 0.25rem 0.25rem;
   border-radius: 0.55rem;
-  color: var(--text);
-  background: #302a30;
-  border: 1px solid var(--line);
+  color: var(--header-text);
+  background: var(--header-chip-bg);
+  border: 1px solid var(--header-line);
   cursor: pointer;
 }
 
@@ -161,6 +456,7 @@ button:focus-visible {
   border-radius: 0.4rem;
   color: #fff;
   background: var(--accent-strong);
+  border: 1px solid var(--line);
   font-size: 0.82rem;
   font-weight: 950;
 }
@@ -172,8 +468,8 @@ button:focus-visible {
   gap: 0.6rem;
   padding: 0.7rem;
   border-radius: 0.55rem;
-  background: #5b4e55;
-  border: 1px solid #7a6a71;
+  background: var(--menu-bg);
+  border: 1px solid var(--line-strong);
   box-shadow: var(--shadow);
   position: absolute;
   top: calc(100% + 0.4rem);
@@ -187,6 +483,7 @@ button:focus-visible {
     opacity 140ms ease,
     transform 140ms ease,
     visibility 140ms ease;
+  color: var(--text);
 }
 
 .header-menu.open {
@@ -194,6 +491,73 @@ button:focus-visible {
   pointer-events: auto;
   transform: translate(-50%, 0);
   visibility: visible;
+}
+
+
+/* =========================================================
+   HIERARQUIA INTERNA DO MENU "PARTIDA"
+   NÃ£o sÃ£o "cards todos iguais":
+   - seletor de modo = camada mÃ©dia;
+   - modo ativo = camada mais clara;
+   - status = camada escura;
+   - aÃ§Ãµes = outra camada escura intermediÃ¡ria;
+   - aÃ§Ã£o desabilitada = camada prÃ³pria.
+   ========================================================= */
+
+.header-menu .mode-button {
+  background: var(--menu-mode-bg);
+  border-color: var(--line-soft);
+}
+
+.header-menu .mode-button:hover:not(.active):not(:disabled) {
+  background: var(--menu-mode-hover);
+  border-color: var(--line);
+}
+
+.header-menu .mode-button.active {
+  background: var(--menu-mode-active);
+  border-color: var(--line-strong);
+  color: #fff;
+}
+
+.header-menu .mode-button.completed:not(.active) {
+  background: var(--menu-mode-completed);
+  border-color: var(--line);
+}
+
+.header-menu .status-panel > div,
+.header-menu .status-panel .compact {
+  background: var(--menu-stat-bg);
+  border-color: var(--line-subtle);
+}
+
+.header-menu .status-panel span {
+  color: var(--text-soft);
+}
+
+.header-menu .status-panel strong {
+  color: var(--text);
+}
+
+.header-menu .tool-button,
+.header-menu .secondary-button {
+  background: var(--menu-action-bg);
+  border-color: var(--line-subtle);
+  color: var(--text);
+}
+
+.header-menu .tool-button:hover:not(:disabled),
+.header-menu .secondary-button:hover:not(:disabled) {
+  background: var(--menu-action-hover);
+  border-color: var(--line);
+}
+
+.header-menu button:disabled {
+  opacity: 1;
+  background: var(--menu-disabled-bg);
+  border-color: var(--line-subtle);
+  color: var(--menu-disabled-text);
+  transform: none;
 }
 
 .header-menu .mode-selector,
@@ -219,6 +583,11 @@ button:focus-visible {
   gap: 0.45rem;
 }
 
+
+/* =========================================================
+   BOTÃ•ES
+   ========================================================= */
+
 .tool-button,
 .mode-button,
 .keyboard-key,
@@ -235,15 +604,19 @@ button:focus-visible {
   padding: 0 0.9rem;
   border-radius: 0.45rem;
   color: var(--text);
-  background: var(--surface-soft);
+  background: var(--surface-highlight);
   border: 1px solid var(--line);
   font-weight: 800;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
 }
 
 .tool-button:hover,
-.mode-button:hover,
 .secondary-button:hover {
-  border-color: var(--accent);
+  background: var(--surface-raised);
+  border-color: var(--line-strong);
   transform: translateY(-1px);
 }
 
@@ -251,14 +624,21 @@ button:focus-visible {
   min-width: 5rem;
 }
 
+
+/* =========================================================
+   LAYOUT DO JOGO
+   ========================================================= */
+
 .game-layout {
+  position: relative;
   width: 100%;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   justify-items: center;
-  gap: clamp(0.32rem, 0.95vh, 0.78rem);
-  padding: clamp(0.45rem, 1.05vh, 0.85rem) clamp(0.55rem, 1.7vw, 1.45rem);
+  gap: clamp(0.18rem, 0.55vh, 0.42rem);
+  padding: clamp(0.18rem, 0.55vh, 0.45rem) clamp(0.45rem, 1.35vw, 1.15rem)
+    clamp(0.12rem, 0.35vh, 0.32rem);
   overflow: hidden;
 }
 
@@ -278,13 +658,19 @@ button:focus-visible {
   padding: 0.35rem;
   border-radius: 0.5rem;
   color: var(--muted);
-  background: #5f5159;
+  background: var(--mode-bg);
   border: 1px solid var(--line);
   box-shadow: none;
   transition:
     border-color 140ms ease,
     transform 140ms ease,
     background 140ms ease;
+}
+
+.mode-button:hover {
+  background: var(--surface-highlight);
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
 }
 
 .mode-button span {
@@ -302,13 +688,12 @@ button:focus-visible {
 .mode-button.active {
   color: #fff;
   background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  box-shadow: none;
+  border-color: var(--accent);
 }
 
 .mode-button.completed:not(.active) {
   color: var(--text);
-  background: #5b4e55;
+  background: var(--surface-strong);
   border-color: var(--line-strong);
 }
 
@@ -316,6 +701,11 @@ button:focus-visible {
   color: var(--accent);
   font-weight: 900;
 }
+
+
+/* =========================================================
+   STATUS
+   ========================================================= */
 
 .status-panel {
   width: min(100%, 62rem);
@@ -331,7 +721,15 @@ button:focus-visible {
   min-height: clamp(2.55rem, 5.4vh, 3rem);
   border-radius: 0.5rem;
   background: var(--surface-strong);
-  border: 1px solid #7a6a71;
+  border: 1px solid var(--line);
+}
+
+.status-panel > div:nth-child(2) {
+  background: var(--surface-sunken);
+}
+
+.status-panel > div:nth-child(3) {
+  background: color-mix(in srgb, var(--surface-strong) 72%, var(--surface-highlight));
 }
 
 .status-panel > div {
@@ -353,11 +751,21 @@ button:focus-visible {
 }
 
 .message {
-  min-height: clamp(0.8rem, 1.8vh, 1.15rem);
+  min-height: 0;
+  position: absolute;
+  top: clamp(0.16rem, 0.45vh, 0.38rem);
+  left: 50%;
+  z-index: 8;
+  padding: 0.18rem 0.55rem;
+  border-radius: 0.35rem;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
   color: var(--danger);
   font-weight: 900;
   font-size: clamp(0.78rem, 1.8vw, 0.95rem);
   opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
   transition: opacity 160ms ease;
 }
 
@@ -366,12 +774,17 @@ button:focus-visible {
   opacity: 1;
 }
 
+
+/* =========================================================
+   BOARD / TILES
+   ========================================================= */
+
 .board-grid {
   width: 100%;
   height: 100%;
   min-height: 0;
   display: grid;
-  gap: clamp(0.55rem, 1.55vw, 2rem);
+  gap: clamp(0.45rem, 1.35vw, 1.75rem);
   align-items: stretch;
   align-content: stretch;
   justify-content: center;
@@ -463,7 +876,7 @@ button:focus-visible {
   padding: 0.12rem 0.38rem;
   border-radius: 999px;
   color: #fff;
-  background: var(--green);
+  background: var(--accent-strong);
   font-size: clamp(0.55rem, 1.25vw, 0.68rem);
   font-weight: 900;
 }
@@ -494,8 +907,8 @@ button:focus-visible {
   display: grid;
   place-items: center;
   border-radius: 0.42rem;
-  border: 0;
-  background: #66585f;
+  border: 1px solid var(--tile-line);
+  background: var(--tile-bg);
   color: var(--text);
   font-family: "Arial Rounded MT Bold", "Arial Black", Arial, Helvetica, sans-serif;
   font-size: clamp(0.92rem, calc(var(--tile-size) * 0.62), 2.35rem);
@@ -517,44 +930,56 @@ button.tile {
 }
 
 .tile.editable:hover {
-  box-shadow: inset 0 0 0 1px #7d7177;
+  background: var(--tile-bg-filled);
+  box-shadow: inset 0 0 0 1px var(--tile-line-hover);
 }
 
 .tile.active {
-  box-shadow: inset 0 0 0 2px #a99aa3;
+  background: var(--tile-bg-filled);
+  box-shadow: inset 0 0 0 2px var(--tile-line-active);
 }
 
 .row.current .tile {
-  box-shadow: inset 0 0 0 1px #746870;
+  box-shadow: inset 0 0 0 1px var(--tile-line);
 }
 
 .row.current .tile:not(:empty) {
-  box-shadow: inset 0 0 0 1px #82757d;
+  background: var(--tile-bg-filled);
+  box-shadow: inset 0 0 0 1px var(--tile-line-filled);
 }
 
 .row.current .tile.active {
-  box-shadow: inset 0 0 0 2px #a99aa3;
+  box-shadow: inset 0 0 0 2px var(--tile-line-active);
 }
+
+.row.invalid {
+  animation: row-shake 280ms ease;
+}
+
+
+/* =========================================================
+   ESTADOS DAS LETRAS
+   ========================================================= */
 
 .tile.correct,
 .keyboard-key.correct {
   color: #fff;
-  background: var(--green);
-  border-color: var(--green);
+  background: var(--game-correct);
+  border-color: var(--game-correct);
 }
 
 .tile.present,
 .keyboard-key.present {
   color: #fff;
-  background: var(--yellow);
-  border-color: var(--yellow);
+  background: var(--game-present);
+  border-color: var(--game-present);
 }
 
 .tile.absent,
 .keyboard-key.absent {
   color: #fff;
-  background: var(--gray);
-  border-color: var(--gray);
+  background: var(--game-absent);
+  border-color: var(--game-absent);
 }
 
 .tile.correct,
@@ -585,12 +1010,17 @@ button.tile {
   animation-name: reveal-absent;
 }
 
+
+/* =========================================================
+   TECLADO
+   ========================================================= */
+
 .keyboard {
-  width: min(100% - 1rem, 68rem);
+  width: min(100% - 0.5rem, 68rem);
   display: grid;
   gap: clamp(0.16rem, 0.58vh, 0.32rem);
   margin: 0 auto;
-  padding: clamp(0.3rem, 0.75vh, 0.58rem) 0.25rem clamp(0.38rem, 0.9vh, 0.7rem);
+  padding: clamp(0.22rem, 0.55vh, 0.45rem) 0.2rem clamp(0.25rem, 0.65vh, 0.55rem);
   flex: 0 0 auto;
 }
 
@@ -611,21 +1041,26 @@ button.tile {
   font-size: clamp(0.85rem, 2.15vw, 1.18rem);
   font-weight: 950;
   transition:
-    filter 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease,
     transform 120ms ease;
 }
 
 .keyboard-key.empty {
-  color: #fffaf7;
+  color: var(--text);
   background: var(--key-bg);
   border-color: var(--key-line);
 }
 
+.keyboard-key.empty:not(:hover) {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 3%);
+}
+
 .keyboard-key.absent {
-  color: rgb(255 250 247 / 24%);
+  color: #a997a0;
   background: var(--key-used-bg);
-  border-color: transparent;
-  opacity: 0.74;
+  border: 1px solid #493d43;
+  opacity: 1;
 }
 
 .keyboard-key.action-key {
@@ -633,7 +1068,7 @@ button.tile {
   padding: 0 0.35rem;
   color: #fff;
   background: var(--key-action);
-  border-color: var(--key-action);
+  border-color: var(--key-line);
   font-size: clamp(0.78rem, 1.8vw, 1rem);
 }
 
@@ -641,26 +1076,58 @@ button.tile {
   width: clamp(2.8rem, 6vw, 4.15rem);
   color: #fff;
   background: var(--key-action);
-  border-color: var(--key-action);
+  border-color: var(--key-line);
   font-size: clamp(1rem, 2.4vw, 1.3rem);
   line-height: 1;
 }
 
+.boards-4 .keyboard,
+.boards-6 .keyboard {
+  width: min(100% - 0.5rem, 82rem);
+}
+
+.boards-4 .keyboard-row,
+.boards-6 .keyboard-row {
+  gap: clamp(0.18rem, 0.38vw, 0.36rem);
+}
+
+.boards-4 .keyboard-key,
+.boards-6 .keyboard-key {
+  width: clamp(2.35rem, 4.35vw, 5.2rem);
+  height: clamp(2.45rem, 5.8vh, 3.55rem);
+  font-size: clamp(0.86rem, 1.95vw, 1.22rem);
+}
+
+.boards-4 .keyboard-key.action-key,
+.boards-6 .keyboard-key.action-key {
+  width: clamp(7rem, 14vw, 15rem);
+}
+
+.boards-4 .keyboard-key.backspace-key,
+.boards-6 .keyboard-key.backspace-key {
+  width: clamp(3.15rem, 5.4vw, 5.1rem);
+}
+
 .keyboard-key:hover,
 .primary-button:hover {
-  filter: none;
   transform: translateY(-1px);
 }
 
 .keyboard-key.empty:hover {
   background: var(--key-bg-strong);
+  border-color: var(--line);
 }
 
 .keyboard-key.action-key:hover,
 .keyboard-key.backspace-key:hover {
   background: var(--key-action-strong);
-  border-color: var(--key-action-strong);
+  border-color: var(--line);
 }
+
+
+/* =========================================================
+   MODAIS
+   ========================================================= */
 
 .modal-backdrop {
   position: fixed;
@@ -668,7 +1135,7 @@ button.tile {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgb(31 28 31 / 22%);
+  background: var(--backdrop);
   z-index: 20;
 }
 
@@ -680,17 +1147,17 @@ button.tile {
   display: grid;
   gap: 1rem;
   padding: 1.35rem;
-  border-radius: 0.5rem;
-  background: #5b4e55;
-  border: 1px solid #7a6a71;
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--surface-raised) 82%, var(--surface));
+  border: 1px solid var(--line-strong);
   box-shadow: var(--shadow);
 }
 
 .result-modal {
   width: min(calc(100vw - 1.5rem), 34rem);
   align-self: center;
-  background: #5b4e55;
-  box-shadow: 0 1.25rem 3.5rem rgb(28 22 28 / 36%);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-strong);
 }
 
 .wide-modal {
@@ -705,10 +1172,15 @@ button.tile {
   height: 2.25rem;
   border-radius: 0.35rem;
   color: var(--muted);
-  background: var(--surface-soft);
+  background: var(--surface-strong);
   border: 1px solid var(--line);
   font-size: 1.15rem;
   font-weight: 900;
+}
+
+.modal-close:hover {
+  background: var(--surface-soft);
+  border-color: var(--line-strong);
 }
 
 .modal h2 {
@@ -733,7 +1205,7 @@ button.tile {
 .answer-list span {
   padding: 0.45rem 0.6rem;
   border-radius: 0.4rem;
-  background: var(--surface-soft);
+  background: var(--surface-strong);
   border: 1px solid var(--line);
   color: var(--text);
   font-weight: 900;
@@ -744,8 +1216,8 @@ button.tile {
   gap: 0.55rem;
   padding: 0.75rem;
   border-radius: 0.45rem;
-  background: var(--surface-soft);
-  border: 1px solid var(--line);
+  background: var(--surface-highlight);
+  border: 1px solid var(--line-strong);
 }
 
 .next-mode-panel p {
@@ -764,7 +1236,7 @@ button.tile {
 
 .next-mode-actions .secondary-button {
   min-height: 2.45rem;
-  background: #4d4249;
+  background: var(--surface-strong);
 }
 
 .modal-actions {
@@ -780,20 +1252,53 @@ button.tile {
   border-radius: 0.45rem;
   font-weight: 900;
   transition:
-    filter 120ms ease,
+    background 120ms ease,
     transform 120ms ease,
     border-color 120ms ease;
 }
 
+/* Botao e link com cara de botao precisam centralizar igual.
+   Um <button> ja centraliza o texto sozinho; um <a> nao. Sem esta
+   regra o rotulo de um link fica encostado no canto superior esquerdo
+   da caixa, como acontecia em "Ir para o login". Vale para toda a
+   aplicacao, e nao so dentro de .championship-panel. */
+.primary-button,
+.secondary-button,
+.ghost-button,
+.danger-button,
+.tool-button,
+.start-now-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
+  line-height: 1.15;
+}
+
 .primary-button {
   color: #fff;
+  background: var(--surface-strong);
+  border: 1px solid var(--accent);
+  box-shadow: none;
+}
+
+.primary-button:hover {
   background: var(--accent-warm);
+  border-color: var(--accent);
 }
 
 .secondary-button {
   color: var(--text);
-  background: var(--surface-soft);
+  background: var(--surface-highlight);
   border: 1px solid var(--line);
+}
+
+.secondary-button:hover {
+  background: var(--surface-raised);
+  border-color: var(--line-strong);
 }
 
 .secondary-button.compact {
@@ -815,22 +1320,14 @@ button.tile {
   opacity: 1;
 }
 
-.rules-list {
-  display: grid;
-  gap: 0.8rem;
-}
 
-.rule-swatch {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.rule-swatch .tile {
-  width: 2.4rem;
-  font-size: 1.2rem;
-}
+/* =========================================================
+   CARDS / ESTATÃSTICAS
+   Hierarquia:
+   - painel externo = --surface
+   - card interno = --surface-raised
+   - valor / destaque = texto claro
+   ========================================================= */
 
 .stats-grid {
   display: grid;
@@ -839,10 +1336,14 @@ button.tile {
 }
 
 .stats-card {
-  padding: 0.9rem;
-  border-radius: 0.5rem;
-  background: var(--surface-soft);
+  padding: 0.95rem;
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--surface-raised) 72%, var(--surface-soft));
   border: 1px solid var(--line);
+}
+
+.stats-card:hover {
+  border-color: var(--line-strong);
 }
 
 .stats-card h3 {
@@ -873,6 +1374,50 @@ button.tile {
   font-size: 1.32rem;
   font-weight: 950;
 }
+
+
+/* =========================================================
+   PROFUNDIDADE GENÃ‰RICA PARA TELAS DE CAMPEONATO / HISTÃ“RICO
+   Os seletores inexistentes sÃ£o ignorados sem efeito.
+   Servem para impedir painel e cards com a mesma cor quando
+   esses nomes forem usados em estilos especÃ­ficos.
+   ========================================================= */
+
+.performance-panel,
+.result-section,
+.history-section,
+.championship-section,
+.summary-section,
+.content-panel {
+  background: color-mix(in srgb, var(--surface) 88%, var(--surface-strong));
+  border: 1px solid var(--line-strong);
+}
+
+.metric-card,
+.summary-card,
+.performance-card,
+.result-card,
+.history-card,
+.championship-card,
+.stat-card {
+  background: color-mix(in srgb, var(--surface-raised) 70%, var(--surface-soft));
+  border: 1px solid var(--line);
+}
+
+.metric-card:hover,
+.summary-card:hover,
+.performance-card:hover,
+.result-card:hover,
+.history-card:hover,
+.championship-card:hover,
+.stat-card:hover {
+  border-color: var(--line-strong);
+}
+
+
+/* =========================================================
+   DISTRIBUIÃ‡ÃƒO
+   ========================================================= */
 
 .distribution {
   display: grid;
@@ -911,6 +1456,33 @@ button.tile {
   font-weight: 900;
 }
 
+
+/* =========================================================
+   REGRAS
+   ========================================================= */
+
+.rules-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.rule-swatch {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.rule-swatch .tile {
+  width: 2.4rem;
+  font-size: 1.2rem;
+}
+
+
+/* =========================================================
+   ANIMAÃ‡Ã•ES
+   ========================================================= */
+
 @keyframes row-in {
   from {
     transform: translateY(-4px);
@@ -928,29 +1500,29 @@ button.tile {
   40% {
     transform: rotateY(0deg);
     color: var(--text);
-    background: var(--surface-soft);
-    border-color: var(--line);
+    background: var(--tile-bg);
+    border-color: var(--tile-line);
   }
 
   50% {
     transform: rotateY(88deg) scale(0.96);
     color: var(--text);
-    background: var(--surface-soft);
-    border-color: var(--line);
+    background: var(--tile-bg-filled);
+    border-color: var(--tile-line);
   }
 
   51% {
     transform: rotateY(-88deg) scale(0.96);
     color: #fff;
-    background: var(--green);
-    border-color: var(--green);
+    background: var(--game-correct);
+    border-color: var(--game-correct);
   }
 
   100% {
     transform: rotateY(0deg) scale(1);
     color: #fff;
-    background: var(--green);
-    border-color: var(--green);
+    background: var(--game-correct);
+    border-color: var(--game-correct);
   }
 }
 
@@ -959,29 +1531,29 @@ button.tile {
   40% {
     transform: rotateY(0deg);
     color: var(--text);
-    background: var(--surface-soft);
-    border-color: var(--line);
+    background: var(--tile-bg);
+    border-color: var(--tile-line);
   }
 
   50% {
     transform: rotateY(88deg) scale(0.96);
     color: var(--text);
-    background: var(--surface-soft);
-    border-color: var(--line);
+    background: var(--tile-bg-filled);
+    border-color: var(--tile-line);
   }
 
   51% {
     transform: rotateY(-88deg) scale(0.96);
     color: #fff;
-    background: var(--yellow);
-    border-color: var(--yellow);
+    background: var(--game-present);
+    border-color: var(--game-present);
   }
 
   100% {
     transform: rotateY(0deg) scale(1);
     color: #fff;
-    background: var(--yellow);
-    border-color: var(--yellow);
+    background: var(--game-present);
+    border-color: var(--game-present);
   }
 }
 
@@ -990,55 +1562,284 @@ button.tile {
   40% {
     transform: rotateY(0deg);
     color: var(--text);
-    background: var(--surface-soft);
-    border-color: var(--line);
+    background: var(--tile-bg);
+    border-color: var(--tile-line);
   }
 
   50% {
     transform: rotateY(88deg) scale(0.96);
     color: var(--text);
-    background: var(--surface-soft);
-    border-color: var(--line);
+    background: var(--tile-bg-filled);
+    border-color: var(--tile-line);
   }
 
   51% {
     transform: rotateY(-88deg) scale(0.96);
     color: #fff;
-    background: var(--gray);
-    border-color: var(--gray);
+    background: var(--game-absent);
+    border-color: var(--game-absent);
   }
 
   100% {
     transform: rotateY(0deg) scale(1);
     color: #fff;
-    background: var(--gray);
-    border-color: var(--gray);
+    background: var(--game-absent);
+    border-color: var(--game-absent);
   }
 }
 
 @keyframes shake {
   0%,
   100% {
-    transform: translateX(0);
+    transform: translateX(-50%);
   }
 
   30% {
-    transform: translateX(-5px);
+    transform: translateX(calc(-50% - 5px));
   }
 
   65% {
-    transform: translateX(5px);
+    transform: translateX(calc(-50% + 5px));
   }
 }
 
-@media (max-width: 1040px) {
+@keyframes row-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-0.45rem);
+  }
+
+  45% {
+    transform: translateX(0.38rem);
+  }
+
+  70% {
+    transform: translateX(-0.2rem);
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVIDADE
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   TABULEIROS EM TELA ESTREITA
+
+   O desenho do desktop (acima de 1180px) fica intocado.
+
+   Abaixo disso o tamanho da peca deixa de ser numero escolhido
+   a mao e passa a ser conta: dado quantos tabuleiros cabem lado
+   a lado (--colunas), quantas fileiras de tabuleiro existem
+   (--linhas) e quantas tentativas o modo tem (--tentativas), a
+   peca e o menor entre o que a largura permite e o que a altura
+   permite. Trocar o arranjo vira trocar duas variaveis.
+
+   Tres defeitos que isso corrige:
+
+   1. .count-4 declarava grid-template-rows: minmax(0, 1fr), uma
+      unica fileira explicita. Ao virar 2x2 nascia uma segunda
+      fileira implicita, e a fileira 1fr engolia toda a altura
+      sobrando: dai o buraco enorme entre a fileira de cima e a
+      de baixo.
+   2. As colunas eram minmax(0, 1fr), entao cada coluna ficava com
+      metade da largura mesmo com o tabuleiro ocupando um quinto
+      dela, e os dois tabuleiros flutuavam longe um do outro.
+      Agora sao max-content, centralizadas.
+   3. O teto do --tile-size era 1.18rem no .count-4 e 1.05rem no
+      .count-6, medida pensada para celular de 360px. Numa janela
+      de 800px de largura sobrava espaco de sobra e a peca
+      continuava do tamanho de uma letra.
+   --------------------------------------------------------- */
+
+.board-grid.count-1,
+.board-grid.count-2,
+.board-grid.count-4,
+.board-grid.count-6 {
+  /* Tentativas por modo, iguais a MODE_CONFIG em utils/constants.ts. */
+  --tentativas: 6;
+}
+
+.board-grid.count-2 {
+  --tentativas: 7;
+}
+
+.board-grid.count-4 {
+  --tentativas: 9;
+}
+
+.board-grid.count-6 {
+  --tentativas: 12;
+}
+
+@media (max-width: 1180px) {
+  /* Precisa ficar no seletor com as duas classes: as regras de
+     desktop tambem sao .board-grid.count-N e ganhariam de um
+     .board-grid sozinho, mesmo dentro da media query. */
+  .board-grid.count-1,
+  .board-grid.count-2,
+  .board-grid.count-4,
   .board-grid.count-6 {
-    max-width: 54rem;
+    max-width: 100%;
+    justify-content: center;
+    align-content: center;
+    gap: clamp(0.3rem, 1.4vh, 1rem) clamp(0.55rem, 2.4vw, 1.6rem);
+
+    /* Altura que nao pertence ao tabuleiro: cabecalho, teclado e
+       respiros. O teclado nao encolhe indefinidamente (as teclas tem
+       altura minima), entao a parte proporcional precisa de um piso;
+       sem ele, em janela baixa a conta prometia um espaco que nao
+       existia e o tabuleiro passava por baixo do teclado. */
+    --fora-do-tabuleiro: max(calc(20vh + 6rem), 16rem);
+
+    /* Os fatores 5.35 e 1.12 pagam os vaos entre pecas: cinco
+       colunas com quatro vaos, e as fileiras com o respiro delas. */
+    --tile-size: clamp(
+      0.72rem,
+      min(
+        calc((100vw - 2rem - (var(--colunas) - 1) * 1.6rem) / (var(--colunas) * 5.35)),
+        calc((100dvh - var(--fora-do-tabuleiro)) / (var(--linhas) * var(--tentativas) * 1.12))
+      ),
+      4.2rem
+    );
+    --tile-gap: clamp(0.05rem, 0.18vw, 0.18rem);
+    --row-gap: clamp(0.06rem, 0.24vh, 0.2rem);
+  }
+
+  /* Cada arranjo declara as variaveis da conta E o desenho da grade.
+     Os dois andam juntos: se so um mudasse, sobrariam colunas vazias
+     ou fileiras implicitas com altura sobrando, que foi exatamente o
+     defeito 1 la de cima. As colunas sao max-content para o tabuleiro
+     nao ganhar largura que nao usa. */
+  .board-grid.count-1 {
+    --colunas: 1;
+    --linhas: 1;
+    grid-template-columns: max-content;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .board-grid.count-2 {
+    --colunas: 2;
+    --linhas: 1;
+    grid-template-columns: repeat(2, max-content);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  /* Quatro em fila ainda rendem peca maior que 2 x 2 ate uns 700px:
+     dividir por quatro na largura custa menos do que dobrar o numero
+     de fileiras na altura. */
+  .board-grid.count-4 {
+    --colunas: 4;
+    --linhas: 1;
+    grid-template-columns: repeat(4, max-content);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  /* Seis em fila exigiriam cerca de 1140px so de tabuleiro; em 1180px
+     ja nao cabem. Viram 3 x 2 e assim ficam ate o celular: 2 x 3 seria
+     pior, porque triplicar as fileiras arrocha a altura, que e o lado
+     mais escasso no Sexteto (doze tentativas por tabuleiro). */
+  .board-grid.count-6 {
+    --colunas: 3;
+    --linhas: 2;
     grid-template-columns: repeat(3, max-content);
     grid-template-rows: repeat(2, minmax(0, 1fr));
-    --tile-size: clamp(1.05rem, min(3.2vw, 2.45vh), 1.55rem);
-    --tile-gap: clamp(0.06rem, 0.16vw, 0.14rem);
-    --row-gap: clamp(0.08rem, 0.22vh, 0.18rem);
+  }
+
+  .board-grid.count-6 .board-header p,
+  .board-grid.count-6 .board-header span {
+    display: none;
+  }
+}
+
+/* Abaixo de 700px a largura passa a doer mais que a altura. */
+@media (max-width: 700px) {
+  .board-grid.count-4 {
+    --colunas: 2;
+    --linhas: 2;
+    grid-template-columns: repeat(2, max-content);
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Janela muito baixa (menos de 520px de altura util). Nem com a peca no
+   menor tamanho legivel cabem dezoito ou vinte e quatro fileiras. Entre
+   cortar as fileiras de cima em silencio e deixar rolar, rolar e menos
+   pior: a pessoa continua vendo o jogo inteiro. */
+@media (max-height: 520px) {
+  .board-grid {
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* O Sexteto e o modo que mais pede altura: doze tentativas. Numa tela
+   1920x900, comum em notebook, a regra de desktop pedia 12 x 50px de
+   peca e so havia espaco para 11 fileiras e meia, entao a fileira de
+   baixo ficava escondida atras do teclado. Abaixo de 1000px de altura
+   a peca passa a ser calculada, mantendo os seis em fila. */
+@media (min-width: 1181px) and (max-height: 1000px) {
+  .board-grid.count-6 {
+    max-width: 100%;
+    grid-template-rows: minmax(0, 1fr);
+    justify-content: center;
+    align-content: center;
+    --colunas: 6;
+    --linhas: 1;
+    --fora-do-tabuleiro: max(calc(20vh + 6rem), 16rem);
+    --tile-size: clamp(
+      0.72rem,
+      min(
+        calc((100vw - 2rem - 8rem) / 32.1),
+        calc((100dvh - var(--fora-do-tabuleiro)) / (var(--tentativas) * 1.12))
+      ),
+      4.2rem
+    );
+  }
+}
+
+/* Janela larga mas baixa: o arranjo do desktop continua certo, o que
+   estava errado era o tamanho da peca, presa a um minimo que nao cabia
+   na altura. Aqui a mesma conta assume, mantendo as colunas do desktop. */
+@media (min-width: 1181px) and (max-height: 700px) {
+  .board-grid.count-1,
+  .board-grid.count-2,
+  .board-grid.count-4,
+  .board-grid.count-6 {
+    max-width: 100%;
+    grid-template-rows: minmax(0, 1fr);
+    justify-content: center;
+    align-content: center;
+    --linhas: 1;
+    --fora-do-tabuleiro: max(calc(20vh + 6rem), 16rem);
+    --tile-size: clamp(
+      0.72rem,
+      min(
+        calc((100vw - 2rem - (var(--colunas) - 1) * 1.6rem) / (var(--colunas) * 5.35)),
+        calc((100dvh - var(--fora-do-tabuleiro)) / (var(--tentativas) * 1.12))
+      ),
+      4.2rem
+    );
+  }
+
+  .board-grid.count-1 {
+    --colunas: 1;
+  }
+
+  .board-grid.count-2 {
+    --colunas: 2;
+  }
+
+  .board-grid.count-4 {
+    --colunas: 4;
+  }
+
+  .board-grid.count-6 {
+    --colunas: 6;
   }
 }
 
@@ -1054,42 +1855,6 @@ button.tile {
 
   .status-panel .compact {
     grid-column: span 2;
-  }
-
-  .board-grid.count-1 {
-    max-width: 20rem;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .board-grid.count-2 {
-    max-width: 37rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    --tile-size: clamp(1.15rem, min(7.2vw, 3.7vh), 2rem);
-  }
-
-  .board-grid.count-4 {
-    max-width: 36rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    --tile-size: clamp(0.72rem, min(4.9vw, 1.55vh), 1.18rem);
-  }
-
-  .board-grid.count-6 {
-    max-width: 34rem;
-    grid-template-columns: repeat(2, max-content);
-    grid-template-rows: repeat(3, minmax(0, 1fr));
-    gap: clamp(0.28rem, 1.1vh, 0.55rem) clamp(0.75rem, 4vw, 1.35rem);
-    --tile-size: clamp(0.78rem, min(4.6vw, 1.65vh), 1.05rem);
-    --tile-gap: 0.05rem;
-    --row-gap: 0.07rem;
-  }
-
-  .board-grid.count-6 .board {
-    padding: 0.25rem;
-  }
-
-  .board-grid.count-6 .board-header p,
-  .board-grid.count-6 .board-header span {
-    display: none;
   }
 
   .tool-button {
@@ -1130,12 +1895,11 @@ button.tile {
     grid-column: span 3;
   }
 
+  /* O tabuleiro nao ganha respiro proprio aqui: com colunas
+     max-content esse padding entra na conta da largura e some
+     justamente do espaco que a peca precisa. */
   .board {
-    padding: 0.35rem;
-  }
-
-  .row {
-    gap: var(--tile-gap);
+    padding: 0;
   }
 
   .keyboard {
@@ -1151,12 +1915,36 @@ button.tile {
     height: clamp(1.9rem, 5.1vh, 2.45rem);
   }
 
+  .boards-4 .keyboard,
+  .boards-6 .keyboard {
+    width: min(100% - 0.2rem, 26rem);
+  }
+
+  .boards-4 .keyboard-key,
+  .boards-6 .keyboard-key {
+    width: clamp(1.38rem, 7.4vw, 2.15rem);
+    height: clamp(1.9rem, 5.1vh, 2.45rem);
+    font-size: clamp(0.74rem, 2.4vw, 0.96rem);
+  }
+
   .keyboard-key.action-key {
     width: clamp(3.2rem, 16.5vw, 4.45rem);
     font-size: 0.58rem;
+  }
+
+  .boards-4 .keyboard-key.action-key,
+  .boards-6 .keyboard-key.action-key {
+    width: clamp(3.2rem, 16.5vw, 4.45rem);
+  }
+
+  .boards-4 .keyboard-key.backspace-key,
+  .boards-6 .keyboard-key.backspace-key {
+    width: clamp(2.4rem, 8.5vw, 3.3rem);
   }
 
   .modal {
     padding: 1.1rem;
   }
 }
+
+

@@ -3,6 +3,7 @@ import validWords from "../data/validWords.json";
 import type {
   BoardState,
   CycleResults,
+  FinishedGamePayload,
   FinishedModeResult,
   GameMode,
   GameStatus,
@@ -45,13 +46,33 @@ type ResetGameOptions = {
   force?: boolean;
 };
 
+export type UseGameOptions = {
+  /**
+   * Chamado uma unica vez quando uma partida termina.
+   * Existe para que quem estiver logado possa persistir o resultado.
+   * O Jogo Livre continua funcionando normalmente sem este callback.
+   */
+  onGameFinished?: (payload: FinishedGamePayload) => void;
+};
+
 type GameSnapshot = {
   boards: BoardState[];
   currentGuessLetters: string[];
   activeTileIndex: number;
   attempt: number;
   status: GameStatus;
+  /** Identificador da partida, estavel entre refreshes. */
+  gameId: string;
+  startedAt: string;
 };
+
+function createGameId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `game-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
 
 function isGameMode(value: unknown): value is GameMode {
   return typeof value === "string" && value in MODE_CONFIG;
@@ -72,6 +93,8 @@ function createFreshSnapshot(mode: GameMode): GameSnapshot {
     activeTileIndex: 0,
     attempt: 0,
     status: "playing",
+    gameId: createGameId(),
+    startedAt: new Date().toISOString(),
   };
 }
 
@@ -82,6 +105,8 @@ function createFinishedSnapshot(result: FinishedModeResult): GameSnapshot {
     activeTileIndex: 0,
     attempt: result.attemptsUsed,
     status: result.status,
+    gameId: createGameId(),
+    startedAt: result.finishedAt,
   };
 }
 
@@ -92,6 +117,9 @@ function createProgressSnapshot(progress: SavedGameProgress): GameSnapshot {
     activeTileIndex: clampTileIndex(progress.activeTileIndex),
     attempt: progress.attempt,
     status: progress.status,
+    // Progresso salvo antes desta versao nao tem identificador: cria um.
+    gameId: progress.gameId ?? createGameId(),
+    startedAt: progress.startedAt ?? progress.updatedAt,
   };
 }
 
@@ -169,7 +197,7 @@ function clampTileIndex(index: number): number {
   return Math.min(Math.max(index, 0), WORD_LENGTH - 1);
 }
 
-export function useGame() {
+export function useGame(options: UseGameOptions = {}) {
   const [storedMode, setStoredMode] = useLocalStorage<GameMode>(
     MODE_STORAGE_KEY,
     "simple",
@@ -211,8 +239,14 @@ export function useGame() {
   );
   const [attempt, setAttempt] = useState(() => initialSnapshotRef.current!.attempt);
   const [status, setStatus] = useState<GameStatus>(() => initialSnapshotRef.current!.status);
+  const gameIdRef = useRef(initialSnapshotRef.current!.gameId);
+  const startedAtRef = useRef(initialSnapshotRef.current!.startedAt);
+  // Ref evita que trocar o callback recrie submitGuess a cada render.
+  const onGameFinishedRef = useRef(options.onGameFinished);
+  onGameFinishedRef.current = options.onGameFinished;
   const [message, setMessage] = useState("");
   const [messageId, setMessageId] = useState(0);
+  const [invalidGuessId, setInvalidGuessId] = useState(0);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealingAnswers, setRevealingAnswers] = useState<string[]>([]);
   const lastSubmitAtRef = useRef(0);
@@ -277,6 +311,14 @@ export function useGame() {
     setMessageId((previousId) => previousId + 1);
   }, []);
 
+  const showGuessError = useCallback(
+    (text: string) => {
+      showMessage(text);
+      setInvalidGuessId((previousId) => previousId + 1);
+    },
+    [showMessage],
+  );
+
   const clearMessage = useCallback(() => {
     setMessage("");
   }, []);
@@ -287,6 +329,8 @@ export function useGame() {
         ...normalizeGameProgress(previousProgress),
         [snapshotMode]: {
           mode: snapshotMode,
+          gameId: gameIdRef.current,
+          startedAt: startedAtRef.current,
           ...snapshot,
           updatedAt: new Date().toISOString(),
         },
@@ -344,12 +388,15 @@ export function useGame() {
 
       gameFinishedRef.current = false;
       lastSubmitAtRef.current = 0;
+      gameIdRef.current = createGameId();
+      startedAtRef.current = new Date().toISOString();
       setBoards(createBoards(nextMode));
       setCurrentGuessLetters(createEmptyGuess());
       setActiveTileIndex(0);
       setAttempt(0);
       setStatus("playing");
       setMessage("");
+      setInvalidGuessId(0);
       setIsRevealing(false);
       setRevealingAnswers([]);
       return true;
@@ -385,12 +432,15 @@ export function useGame() {
 
       gameFinishedRef.current = nextSnapshot.status !== "playing";
       lastSubmitAtRef.current = 0;
+      gameIdRef.current = nextSnapshot.gameId;
+      startedAtRef.current = nextSnapshot.startedAt;
       setBoards(nextSnapshot.boards);
       setCurrentGuessLetters(createEmptyGuess());
       setActiveTileIndex(0);
       setAttempt(nextSnapshot.attempt);
       setStatus(nextSnapshot.status);
       setMessage("");
+      setInvalidGuessId(0);
       setIsRevealing(false);
       setRevealingAnswers([]);
       return true;
@@ -411,6 +461,7 @@ export function useGame() {
         return;
       }
 
+      setInvalidGuessId(0);
       setActiveTileIndex(clampTileIndex(index));
     },
     [status],
@@ -428,6 +479,7 @@ export function useGame() {
         return result.letters;
       });
       setMessage("");
+      setInvalidGuessId(0);
     },
     [activeTileIndex, status],
   );
@@ -443,7 +495,33 @@ export function useGame() {
       return result.letters;
     });
     setMessage("");
+    setInvalidGuessId(0);
   }, [activeTileIndex, status]);
+
+  /**
+   * Avisa uma unica vez que a partida terminou.
+   * O guard gameFinishedRef ja garante uma chamada por partida.
+   */
+  const notifyGameFinished = useCallback(
+    (
+      finalBoards: BoardState[],
+      nextAttempt: number,
+      nextStatus: Exclude<GameStatus, "playing">,
+      finishedMode: GameMode,
+    ) => {
+      onGameFinishedRef.current?.({
+        gameId: gameIdRef.current,
+        mode: finishedMode,
+        status: nextStatus,
+        attemptsUsed: nextAttempt,
+        wordsSolved: finalBoards.filter((board) => board.solved).length,
+        wordsTotal: finalBoards.length,
+        startedAt: startedAtRef.current,
+        finishedAt: new Date().toISOString(),
+      });
+    },
+    [],
+  );
 
   const finishReveal = useCallback(
     (
@@ -474,9 +552,10 @@ export function useGame() {
         setStats((previousStats) =>
           recordFinishedGame(previousStats, mode, nextStatus === "won", nextAttempt),
         );
+        notifyGameFinished(finalBoards, nextAttempt, nextStatus, mode);
       }
     },
-    [mode, setCycleResults, setStats],
+    [mode, notifyGameFinished, setCycleResults, setStats],
   );
 
   const submitGuess = useCallback(() => {
@@ -485,14 +564,14 @@ export function useGame() {
     }
 
     if (!isCompleteGuess(currentGuessLetters)) {
-      showMessage("Complete a palavra.");
+      showGuessError("Complete a palavra.");
       return;
     }
 
     const normalizedGuess = normalizeWord(currentGuess);
 
     if (!normalizedValidWords.has(normalizedGuess)) {
-      showMessage("Essa palavra não é aceita.");
+      showGuessError("Essa palavra não é aceita.");
       return;
     }
 
@@ -503,6 +582,7 @@ export function useGame() {
     }
 
     lastSubmitAtRef.current = now;
+    setInvalidGuessId(0);
 
     const revealingBoards: string[] = [];
     const evaluatedBoards = boards.map((board) => {
@@ -561,6 +641,7 @@ export function useGame() {
       setStats((previousStats) =>
         recordFinishedGame(previousStats, mode, nextStatus === "won", nextAttempt),
       );
+      notifyGameFinished(finalBoards, nextAttempt, nextStatus, mode);
     }
 
     isRevealingRef.current = true;
@@ -582,10 +663,11 @@ export function useGame() {
     currentGuessLetters,
     finishReveal,
     mode,
+    notifyGameFinished,
     saveGameProgress,
     setCycleResults,
     setStats,
-    showMessage,
+    showGuessError,
     status,
   ]);
 
@@ -638,6 +720,7 @@ export function useGame() {
     status,
     message,
     messageId,
+    invalidGuessId,
     solvedCount,
     hasSubmittedGuess,
     canRestart,
