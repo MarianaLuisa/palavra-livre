@@ -1882,18 +1882,19 @@ button.tile {
   }
 
   .board-grid.count-1 {
-    --teto-peca: 3.3rem;
+    --teto-peca: 4.75rem;
     --tile-gap: clamp(0.16rem, 0.22cqw, 0.2rem);
     --row-gap: clamp(0.14rem, 0.22cqw, 0.18rem);
   }
 
   .board-grid.count-2 {
-    --piso-peca: 1.65rem;
-    --teto-peca: 3rem;
+    --piso-peca: 2.1rem;
+    --teto-peca: 4.25rem;
+    --vao-coluna: clamp(2.5rem, 6cqw, 5rem);
     --tile-gap: clamp(0.16rem, 0.22cqw, 0.2rem);
     --row-gap: clamp(0.14rem, 0.22cqw, 0.18rem);
-    width: min(100%, 58rem);
-    justify-content: space-between;
+    width: min(100%, 52rem);
+    justify-content: center;
   }
 
   .board-grid.count-4 {
