@@ -1,5 +1,6 @@
 import { CHAMPIONSHIP_MODE_LABEL } from "../../config";
 import { formatDuration, formatPosition, formatScore } from "../../format";
+import { compareParticipants } from "../../ranking";
 import type { AdminParticipant } from "../../types";
 
 type AdminParticipantsTableProps = {
@@ -43,6 +44,20 @@ export function AdminParticipantsTable({
     );
   }
 
+  const sortedParticipants = [...participants].sort((left, right) => {
+    if (left.finalPosition !== null || right.finalPosition !== null) {
+      return (
+        (left.finalPosition ?? Number.MAX_SAFE_INTEGER) -
+        (right.finalPosition ?? Number.MAX_SAFE_INTEGER)
+      );
+    }
+
+    return compareParticipants(
+      { ...left, participantId: left.id },
+      { ...right, participantId: right.id },
+    );
+  });
+
   return (
     <section className="admin-section" aria-labelledby="admin-participants-title">
       <h2 id="admin-participants-title">Participantes ({participants.length})</h2>
@@ -61,7 +76,7 @@ export function AdminParticipantsTable({
             </tr>
           </thead>
           <tbody>
-            {participants.map((participant) => (
+            {sortedParticipants.map((participant) => (
               <tr
                 key={participant.id}
                 className={participant.finalPosition === 1 ? "leaderboard-row first" : undefined}

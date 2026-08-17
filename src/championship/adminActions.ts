@@ -20,7 +20,7 @@ export type AdminActionAvailability = {
   canViewAnswers: boolean;
 };
 
-/** Status em que os horarios ainda podem ser alterados. */
+/** Status em que os horarios ainda podem ser alterados antes do dia ficar disponível. */
 const SCHEDULE_EDITABLE: ChampionshipStatus[] = [
   "SCHEDULED",
   "REGISTRATION_OPEN",
@@ -48,12 +48,12 @@ export function getAdminActionAvailability(
   const scheduleEditable = SCHEDULE_EDITABLE.includes(status);
 
   return {
-    // Comecar agora vale para agendado, inscricoes abertas e aguardando.
+    // No modelo semanal, "começar agora" só antecipa um campeonato ainda agendado.
     canStartNow: scheduleEditable,
     canEditSchedule: scheduleEditable,
-    canOpenRegistration: scheduleEditable,
-    canCloseRegistration: scheduleEditable,
-    canScheduleStartIn: scheduleEditable,
+    canOpenRegistration: false,
+    canCloseRegistration: false,
+    canScheduleStartIn: false,
     canRedrawWords: scheduleEditable,
     // Cancelar vale enquanto nao terminou nem foi cancelado.
     canCancel: status !== "FINISHED" && status !== "CANCELLED",

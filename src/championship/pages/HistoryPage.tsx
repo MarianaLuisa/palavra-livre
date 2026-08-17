@@ -121,7 +121,7 @@ export function HistoryPage() {
             </header>
 
             <ol className="history-podium">
-              {item.podium.map((place) => (
+              {[...item.podium].sort((left, right) => left.position - right.position).map((place) => (
                 <li key={place.position}>
                   <strong>{place.position}º</strong> {place.displayName} ·{" "}
                   {formatScore(place.totalScore)} pts · {place.wordsSolved}/13

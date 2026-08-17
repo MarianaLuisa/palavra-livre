@@ -120,6 +120,12 @@ export type Leaderboard = {
   championshipId: string | null;
   championshipName?: string;
   championshipDate?: string;
+  period?: "daily" | "weekly";
+  periodLabel?: string;
+  weekStart?: string;
+  weekEnd?: string;
+  totalWords?: number | null;
+  totalRounds?: number | null;
   status?: ChampionshipStatus;
   isFinal: boolean;
   entries: LeaderboardEntry[];

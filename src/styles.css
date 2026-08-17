@@ -1000,27 +1000,31 @@ button.tile {
 
 .tile.editable:hover {
   background: var(--tile-bg-filled);
-  box-shadow: inset 0 0 0 1px var(--tile-line-hover);
+  box-shadow: inset 0 0 0 2px var(--tile-line-hover);
 }
 
 .tile.active {
   background: var(--tile-bg-filled);
-  box-shadow: inset 0 0 0 2px var(--tile-line-active);
+  box-shadow:
+    inset 0 0 0 2px var(--tile-line-filled),
+    inset 0 -3px 0 var(--tile-line-active);
 }
 
 .row.current .tile {
-  background: var(--background);
-  box-shadow: inset 0 0 0 1px var(--tile-line);
+  background: var(--tile-bg-filled);
+  box-shadow: inset 0 0 0 2px var(--tile-line-filled);
 }
 
 .row.current .tile:not(:empty) {
   background: var(--tile-bg-filled);
-  box-shadow: inset 0 0 0 1px var(--tile-line-filled);
+  box-shadow: inset 0 0 0 2px var(--tile-line-filled);
 }
 
 .row.current .tile.active {
-  background: var(--background);
-  box-shadow: inset 0 0 0 2px var(--tile-line-active);
+  background: var(--tile-bg-filled);
+  box-shadow:
+    inset 0 0 0 2px var(--tile-line-filled),
+    inset 0 -3px 0 var(--tile-line-active);
 }
 
 .row.invalid {

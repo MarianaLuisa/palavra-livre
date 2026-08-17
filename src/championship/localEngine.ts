@@ -197,17 +197,19 @@ export class LocalChampionshipEngine {
   // -------------------------------------------------------------------
 
   createChampionship(input: CreateChampionshipInput = {}): EngineChampionship {
+    const championshipDate =
+      input.championshipDate ?? getZonedToday(new Date(this.now()).toISOString(), CHAMPIONSHIP_TIMEZONE);
+    const dayStart = getSaoPauloDayStart(championshipDate);
+    const dayEnd = getSaoPauloDayEnd(championshipDate);
     const startsAt = input.startsAt !== undefined
       ? Date.parse(input.startsAt)
-      : this.now() + 60_000;
+      : dayStart;
     const registrationOpensAt = input.registrationOpensAt !== undefined
       ? Date.parse(input.registrationOpensAt)
-      : startsAt - 3_600_000;
+      : startsAt - 1000;
     const registrationClosesAt = input.registrationClosesAt !== undefined
       ? Date.parse(input.registrationClosesAt)
-      : startsAt - 1000;
-    const championshipDate =
-      input.championshipDate ?? new Date(startsAt).toISOString().slice(0, 10);
+      : dayEnd;
 
     if (
       [...this.championships.values()].some(
@@ -228,7 +230,7 @@ export class LocalChampionshipEngine {
       registrationClosesAt,
       startsAt,
       finishedAt: null,
-      status: "SCHEDULED",
+      status: this.now() >= startsAt && this.now() < registrationClosesAt ? "IN_PROGRESS" : "SCHEDULED",
       isOfficial: true,
       createdAt: this.now(),
       actualStartedAt: null,
@@ -428,11 +430,19 @@ export class LocalChampionshipEngine {
       return championship;
     }
 
+    const dailyOpenAllDay = isDailyOpenAllDay(championship);
+    const playableEnd = getPlayableEnd(championship, this.maxDurationMs);
+
+    if (currentTime >= playableEnd) {
+      this.finishChampionship(championshipId);
+      return championship;
+    }
+
     if (currentTime >= championship.startsAt) {
       championship.status = "IN_PROGRESS";
-    } else if (currentTime >= championship.registrationClosesAt) {
+    } else if (!dailyOpenAllDay && currentTime >= championship.registrationClosesAt) {
       championship.status = "WAITING";
-    } else if (currentTime >= championship.registrationOpensAt) {
+    } else if (!dailyOpenAllDay && currentTime >= championship.registrationOpensAt) {
       championship.status = "REGISTRATION_OPEN";
     } else {
       championship.status = "SCHEDULED";
@@ -780,21 +790,25 @@ export class LocalChampionshipEngine {
       return false;
     }
 
-    if (this.now() >= championship.startsAt + this.maxDurationMs) {
+    const dailyOpenAllDay = isDailyOpenAllDay(championship);
+
+    if (this.now() >= getPlayableEnd(championship, this.maxDurationMs)) {
       this.finishChampionship(championshipId);
       return true;
     }
 
-    const registered = this.participants.filter(
-      (item) => item.championshipId === championshipId && item.status !== "CANCELLED",
-    );
-    const open = registered.filter(
-      (item) => item.status === "REGISTERED" || item.status === "IN_PROGRESS",
-    );
+    if (!dailyOpenAllDay) {
+      const registered = this.participants.filter(
+        (item) => item.championshipId === championshipId && item.status !== "CANCELLED",
+      );
+      const open = registered.filter(
+        (item) => item.status === "REGISTERED" || item.status === "IN_PROGRESS",
+      );
 
-    if (registered.length > 0 && open.length === 0) {
-      this.finishChampionship(championshipId);
-      return true;
+      if (registered.length > 0 && open.length === 0) {
+        this.finishChampionship(championshipId);
+        return true;
+      }
     }
 
     return false;
@@ -939,10 +953,11 @@ export class LocalChampionshipEngine {
     const championship = this.refreshStatus(target);
     const clean = displayName.trim();
 
-    const allowed =
-      championship.status === "REGISTRATION_OPEN" ||
-      (this.allowLateRegistration &&
-        (championship.status === "WAITING" || championship.status === "IN_PROGRESS"));
+    const allowed = isDailyOpenAllDay(championship)
+      ? championship.status === "IN_PROGRESS"
+      : championship.status === "REGISTRATION_OPEN" ||
+        (this.allowLateRegistration &&
+          (championship.status === "WAITING" || championship.status === "IN_PROGRESS"));
 
     if (!allowed) {
       throw new ChampionshipError("REGISTRATION_CLOSED");
@@ -1448,6 +1463,97 @@ export class LocalChampionshipEngine {
     };
   }
 
+  getWeeklyLeaderboard(weekStart?: string): Leaderboard {
+    const reference = weekStart ?? getZonedToday(new Date(this.now()).toISOString(), CHAMPIONSHIP_TIMEZONE);
+    const start = startOfIsoWeek(reference);
+    const end = addDaysIso(start, 6);
+    const finished = [...this.championships.values()].filter(
+      (championship) =>
+        championship.isOfficial &&
+        championship.status === "FINISHED" &&
+        championship.championshipDate >= start &&
+        championship.championshipDate <= end,
+    );
+    const totals = new Map<
+      string,
+      {
+        userId: string;
+        displayName: string;
+        totalScore: number;
+        wordsSolved: number;
+        completedRounds: number;
+        totalAttempts: number;
+        totalDurationMs: number;
+        status: ParticipationStatus;
+      }
+    >();
+
+    for (const championship of finished) {
+      const participants = this.participants.filter(
+        (participant) =>
+          participant.championshipId === championship.id && participant.status !== "CANCELLED",
+      );
+
+      for (const participant of participants) {
+        const current = totals.get(participant.userId) ?? {
+          userId: participant.userId,
+          displayName: participant.displayName,
+          totalScore: 0,
+          wordsSolved: 0,
+          completedRounds: 0,
+          totalAttempts: 0,
+          totalDurationMs: 0,
+          status: "FINISHED" as ParticipationStatus,
+        };
+
+        current.displayName = participant.displayName;
+        current.totalScore += participant.totalScore;
+        current.wordsSolved += participant.wordsSolved;
+        current.completedRounds += participant.completedRounds;
+        current.totalAttempts += participant.totalAttempts;
+        current.totalDurationMs += participant.totalDurationMs;
+        totals.set(participant.userId, current);
+      }
+    }
+
+    const ranked = [...totals.values()]
+      .sort((left, right) => {
+        return (
+          right.totalScore - left.totalScore ||
+          right.wordsSolved - left.wordsSolved ||
+          right.completedRounds - left.completedRounds ||
+          left.totalAttempts - right.totalAttempts ||
+          left.totalDurationMs - right.totalDurationMs ||
+          left.userId.localeCompare(right.userId)
+        );
+      })
+      .map((entry, index) => ({
+        participantId: entry.userId,
+        userId: entry.userId,
+        position: index + 1,
+        displayName: entry.displayName,
+        totalScore: entry.totalScore,
+        wordsSolved: entry.wordsSolved,
+        completedRounds: entry.completedRounds,
+        totalAttempts: entry.totalAttempts,
+        totalDurationMs: entry.totalDurationMs,
+        status: entry.status,
+      }));
+
+    return {
+      championshipId: null,
+      championshipName: "Campeonato Semanal",
+      period: "weekly",
+      periodLabel: `${start} a ${end}`,
+      weekStart: start,
+      weekEnd: end,
+      totalWords: finished.length * 13,
+      totalRounds: finished.length * 4,
+      isFinal: finished.length >= 7,
+      entries: ranked,
+    };
+  }
+
   getResults(championshipId?: string): ChampionshipResults {
     const target = championshipId ?? this.getCurrentChampionshipId();
 
@@ -1754,6 +1860,37 @@ function toIso(value: number | null): string | null {
   return value === null ? null : new Date(value).toISOString();
 }
 
+function getSaoPauloDayStart(dateIso: string): number {
+  return Date.parse(`${dateIso}T00:00:00-03:00`);
+}
+
+function getSaoPauloDayEnd(dateIso: string): number {
+  return getSaoPauloDayStart(addDaysIso(dateIso, 1));
+}
+
+function isDailyOpenAllDay(championship: EngineChampionship): boolean {
+  return championship.registrationClosesAt > championship.startsAt;
+}
+
+function getPlayableEnd(championship: EngineChampionship, maxDurationMs: number): number {
+  return isDailyOpenAllDay(championship)
+    ? championship.registrationClosesAt
+    : championship.startsAt + maxDurationMs;
+}
+
+function startOfIsoWeek(dateIso: string): string {
+  const date = new Date(`${dateIso}T12:00:00Z`);
+  const day = date.getUTCDay() === 0 ? 7 : date.getUTCDay();
+  date.setUTCDate(date.getUTCDate() - day + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function addDaysIso(dateIso: string, days: number): string {
+  const date = new Date(`${dateIso}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 /**
  * Adaptador que expoe o motor local com a mesma interface do servico real.
  * Cada instancia representa um usuario, o que permite simular varios
@@ -1819,6 +1956,10 @@ export class LocalChampionshipService implements ChampionshipService {
 
   async getLeaderboard(championshipId?: string): Promise<Leaderboard> {
     return this.engine.getLeaderboard(championshipId);
+  }
+
+  async getWeeklyLeaderboard(weekStart?: string): Promise<Leaderboard> {
+    return this.engine.getWeeklyLeaderboard(weekStart);
   }
 
   async getResults(championshipId?: string): Promise<ChampionshipResults> {

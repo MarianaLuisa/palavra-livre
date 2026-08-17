@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { REVEAL_TOTAL_MS, WORD_LENGTH } from "../utils/constants";
 import {
+  clearGuessLetter,
   createEmptyGuess,
   guessLettersToWord,
   isCompleteGuess,
@@ -130,6 +131,17 @@ export function useRoundInput({
       if (key === "Backspace") {
         setLetters((previousLetters) => {
           const result = removeGuessLetter(previousLetters, activeTileIndex);
+          setActiveTileIndex(result.activeIndex);
+          return result.letters;
+        });
+        setMessage("");
+        setInvalidGuessId(0);
+        return true;
+      }
+
+      if (key === "Delete") {
+        setLetters((previousLetters) => {
+          const result = clearGuessLetter(previousLetters, activeTileIndex);
           setActiveTileIndex(result.activeIndex);
           return result.letters;
         });

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LeaderboardTable } from "../components/LeaderboardTable";
+import { LeaderboardTable, sortLeaderboardEntries } from "../components/LeaderboardTable";
 import { Podium } from "../components/Podium";
 import {
   CHAMPIONSHIP_BRAND,
@@ -68,6 +68,7 @@ export function ResultsPanel({ championshipId, currentUserParticipantId }: Resul
     (participant) => participant.participantId === currentUserParticipantId,
   );
   const champion = results.participants.find((participant) => participant.position === 1);
+  const sortedParticipants = sortLeaderboardEntries(results.participants);
 
   async function handleShare() {
     if (me === undefined) {
@@ -109,7 +110,7 @@ export function ResultsPanel({ championshipId, currentUserParticipantId }: Resul
       ) : null}
 
       <Podium
-        places={results.participants
+        places={sortedParticipants
           .filter((participant) => participant.position !== null && participant.position <= 3)
           .map((participant) => ({
             position: participant.position ?? 0,
@@ -214,7 +215,7 @@ export function ResultsPanel({ championshipId, currentUserParticipantId }: Resul
       <section aria-labelledby="final-standings-title">
         <h2 id="final-standings-title">Classificação completa</h2>
         <LeaderboardTable
-          entries={results.participants}
+          entries={sortedParticipants}
           isFinal
           highlightParticipantId={currentUserParticipantId}
         />

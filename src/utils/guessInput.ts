@@ -51,6 +51,19 @@ export function removeGuessLetter(
   return { letters: nextLetters, activeIndex: previousIndex };
 }
 
+export function clearGuessLetter(
+  letters: string[],
+  activeIndex: number,
+): { letters: string[]; activeIndex: number } {
+  if (activeIndex < 0 || activeIndex >= WORD_LENGTH) {
+    return { letters, activeIndex };
+  }
+
+  const nextLetters = [...letters];
+  nextLetters[activeIndex] = "";
+  return { letters: nextLetters, activeIndex };
+}
+
 export function canSubmitGuess(
   status: GameStatus,
   isRevealing: boolean,

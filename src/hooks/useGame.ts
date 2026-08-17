@@ -23,6 +23,7 @@ import {
 } from "../utils/constants";
 import { evaluateGuess } from "../utils/evaluateGuess";
 import {
+  clearGuessLetter,
   createEmptyGuess,
   guessLettersToWord,
   isCompleteGuess,
@@ -687,6 +688,17 @@ export function useGame(options: UseGameOptions = {}) {
         return true;
       }
 
+      if (key === "Delete") {
+        setCurrentGuessLetters((previousLetters) => {
+          const result = clearGuessLetter(previousLetters, activeTileIndex);
+          setActiveTileIndex(result.activeIndex);
+          return result.letters;
+        });
+        setMessage("");
+        setInvalidGuessId(0);
+        return true;
+      }
+
       if (key === "ArrowLeft") {
         setActiveTileIndex((previousIndex) => clampTileIndex(previousIndex - 1));
         return true;
@@ -706,7 +718,7 @@ export function useGame(options: UseGameOptions = {}) {
 
       return false;
     },
-    [addLetter, removeLetter, status, submitGuess],
+    [activeTileIndex, addLetter, removeLetter, status, submitGuess],
   );
 
   return {

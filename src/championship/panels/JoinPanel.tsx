@@ -27,25 +27,16 @@ export function JoinPanel({
   const [displayName, setDisplayName] = useState(accountUsername ?? suggestedName);
   const usesAccountName = accountUsername !== null && accountUsername.length >= 2;
   const serverTime = Date.parse(serverNow);
-  const registrationOpensAt = Date.parse(championship.registrationOpensAt);
   const registrationClosesAt = Date.parse(championship.registrationClosesAt);
-  const startsAt = Date.parse(championship.startsAt);
-  const registrationOpen =
-    championship.status === "REGISTRATION_OPEN" &&
-    serverTime >= registrationOpensAt &&
-    serverTime < registrationClosesAt;
-  const championshipStarted =
-    championship.status === "IN_PROGRESS" ||
-    championship.status === "CALCULATING_RESULTS" ||
-    championship.status === "FINISHED" ||
-    serverTime >= startsAt;
+  const canJoinToday =
+    championship.status === "IN_PROGRESS" && serverTime < registrationClosesAt;
   const trimmedName = displayName.trim();
   const nameIsValid = trimmedName.length >= 2 && trimmedName.length <= 24;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (registrationOpen && nameIsValid && !busy) {
+    if (canJoinToday && nameIsValid && !busy) {
       onRegister(trimmedName);
     }
   }
@@ -55,8 +46,8 @@ export function JoinPanel({
       <header className="panel-header">
         <h1 id="join-title">{CHAMPIONSHIP_BRAND.name}</h1>
         <p className="panel-subtitle">
-          {formatDate(championship.championshipDate)} · início às{" "}
-          {formatTime(championship.startsAt)}
+          Rodada diária de {formatDate(championship.championshipDate)} · disponível até{" "}
+          {formatTime(championship.registrationClosesAt)}
         </p>
         <span className={`status-chip status-${championship.status.toLowerCase()}`}>
           {CHAMPIONSHIP_STATUS_LABEL[championship.status] ?? championship.status}
@@ -68,10 +59,11 @@ export function JoinPanel({
         <li>Quatro modalidades em sequência: Simples, Dueto, Quarteto e Sexteto.</li>
         <li>13 palavras no total. Cada palavra descoberta vale 100 pontos.</li>
         <li>Concluir todas as palavras de uma modalidade rende 10 pontos por tentativa restante.</li>
-        <li>Uma participação por pessoa e por dia.</li>
+        <li>Você pode jogar a qualquer hora do dia, uma vez por rodada diária.</li>
+        <li>O resultado do dia sai no fim do dia; o placar geral fecha no fim da semana.</li>
       </ul>
 
-      {registrationOpen ? (
+      {canJoinToday ? (
         <form className="join-form" onSubmit={handleSubmit}>
           {usesAccountName ? (
             // Conta permanente: não pedimos o nome de novo.
@@ -104,18 +96,16 @@ export function JoinPanel({
             Entre 2 e 24 caracteres. Não pode repetir o nome de outro participante do mesmo dia.
           </small>
           <button className="primary-button" type="submit" disabled={!nameIsValid || busy}>
-            {busy ? "Inscrevendo..." : "Confirmar inscrição"}
+            {busy ? "Entrando..." : "Jogar campeonato"}
           </button>
         </form>
       ) : (
         <div className="panel-notice">
-          {championshipStarted || championship.status === "WAITING" ? (
-            <p>As inscrições deste {CHAMPIONSHIP_BRAND.eventLabel} já foram encerradas.</p>
+          {championship.status === "FINISHED" || serverTime >= registrationClosesAt ? (
+            <p>A rodada diária de hoje já foi encerrada. O resultado do dia será publicado aqui.</p>
           ) : (
             <p>
-              As inscrições abrem em {formatDate(championship.registrationOpensAt)} às{" "}
-              {formatTime(championship.registrationOpensAt)} e fecham às{" "}
-              {formatTime(championship.registrationClosesAt)}.
+              A próxima rodada diária fica disponível em {formatDate(championship.startsAt)}.
             </p>
           )}
           <p>Enquanto isso, o Jogo Livre continua disponível com partidas ilimitadas.</p>
@@ -123,7 +113,7 @@ export function JoinPanel({
       )}
 
       <p className="panel-footnote">
-        {championship.participantCount} {CHAMPIONSHIP_BRAND.participantLabelPlural} inscritos até agora.
+        {championship.participantCount} {CHAMPIONSHIP_BRAND.participantLabelPlural} participando hoje.
       </p>
     </section>
   );

@@ -48,6 +48,7 @@ export interface ChampionshipService {
   submitAttempt(roundId: string, word: string): Promise<ChampionshipState>;
 
   getLeaderboard(championshipId?: string): Promise<Leaderboard>;
+  getWeeklyLeaderboard(weekStart?: string): Promise<Leaderboard>;
   getResults(championshipId?: string): Promise<ChampionshipResults>;
   getHistory(limit?: number, offset?: number): Promise<ChampionshipHistoryItem[]>;
   getPlayerStats(): Promise<ChampionshipPlayerStats>;
@@ -190,6 +191,12 @@ export class SupabaseChampionshipService implements ChampionshipService {
   getLeaderboard(championshipId?: string): Promise<Leaderboard> {
     return requireClient().rpc<Leaderboard>("cd_leaderboard", {
       p_championship_id: championshipId ?? null,
+    });
+  }
+
+  getWeeklyLeaderboard(weekStart?: string): Promise<Leaderboard> {
+    return requireClient().rpc<Leaderboard>("cd_weekly_leaderboard", {
+      p_week_start: weekStart ?? null,
     });
   }
 
