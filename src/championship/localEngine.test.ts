@@ -114,6 +114,27 @@ async function playRound(
   return state;
 }
 
+describe("Campeonato Norte - modelo semanal", () => {
+  it("cria campeonatos com o nome Norte e a classificacao semanal usa esse nome", async () => {
+    const engine = new LocalChampionshipEngine({
+      answerPool: [...ALL_ANSWERS, ...EXTRA_WORDS],
+      validWords: [...ALL_ANSWERS, ...EXTRA_WORDS],
+      now: () => BASE_TIME,
+      random: () => 0.42,
+    });
+
+    const created = engine.createChampionship({
+      championshipDate: "2026-08-06",
+      registrationOpensAt: REGISTRATION_OPENS,
+      registrationClosesAt: REGISTRATION_CLOSES,
+      startsAt: STARTS_AT,
+    });
+
+    expect(created.name).toBe("Campeonato Norte");
+    expect(engine.getWeeklyLeaderboard("2026-08-03").championshipName).toBe("Campeonato Norte");
+  });
+});
+
 describe("Campeonato Diario - inscricao", () => {
   let harness: Harness;
 

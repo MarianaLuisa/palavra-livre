@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    PALAVRA LIVRE â€” UI SYSTEM MALVA / AMEIXA
    Objetivo:
    - contraste por camadas, nÃ£o por brilho;
@@ -420,7 +420,7 @@ button:focus-visible {
 }
 
 .header-summary {
-  width: min(100%, 62rem);
+  width: min(100%, 80rem);
   min-height: 2.35rem;
   display: flex;
   align-items: center;
@@ -678,7 +678,7 @@ button:focus-visible {
 }
 
 .mode-selector {
-  width: min(100%, 62rem);
+  width: min(100%, 80rem);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(0.28rem, 0.8vw, 0.5rem);
@@ -743,7 +743,7 @@ button:focus-visible {
    ========================================================= */
 
 .status-panel {
-  width: min(100%, 62rem);
+  width: min(100%, 80rem);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
   gap: clamp(0.28rem, 0.8vw, 0.5rem);

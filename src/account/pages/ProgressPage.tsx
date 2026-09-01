@@ -94,14 +94,23 @@ export function ProgressPage() {
     );
   }
 
-  const summary = progress.summary;
+  const summary = progress.summary ?? {
+    games: 0,
+    completedGames: 0,
+    completionRate: 0,
+    wordsSolved: 0,
+    attempts: 0,
+    activeDays: 0,
+    durationMs: 0,
+    byMode: [],
+  };
   const selectedDay =
     selectedDate === null
       ? null
       : (progress.days.find((day) => day.date === selectedDate) ?? null);
   const canGoForward = shiftMonth(progress.month, 1) <= `${progress.today.slice(0, 8)}01`;
-  const todayGames =
-    progress.days.find((day) => day.date === progress.today)?.games ?? 0;
+  const todayDay = progress.days.find((day) => day.date === progress.today);
+  const todayGames = (todayDay?.games ?? 0) + (todayDay?.championship ? 1 : 0);
 
   return (
     <div className="progress-layout">

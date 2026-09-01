@@ -2,6 +2,7 @@ import type { MouseEvent } from "react";
 import { useEffect, useState } from "react";
 import type { BoardState, GameMode, GameStatus } from "../types/game";
 import { MODE_CONFIG } from "../utils/constants";
+import { repairMojibake } from "../utils/repairMojibake";
 import { createShareText } from "../utils/shareResult";
 
 type EndGameModalProps = {
@@ -87,7 +88,7 @@ export function EndGameModal({
         <div className="answer-list" aria-label="Palavras corretas">
           {boards.map((board, index) => (
             <span key={board.answer}>
-              {index + 1}. {board.answer.toUpperCase()}
+              {index + 1}. {repairMojibake(board.answer).normalize("NFC").toUpperCase()}
             </span>
           ))}
         </div>

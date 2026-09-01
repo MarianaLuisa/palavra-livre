@@ -121,7 +121,9 @@ export function MonthCalendar({
             >
               <span className="calendar-day-number">{dayNumber}</span>
               {day !== undefined ? (
-                <span className="calendar-day-count">{day.games}</span>
+                <span className="calendar-day-count">
+                  {day.games > 0 ? day.games : (day.championship ? "★" : "")}
+                </span>
               ) : null}
             </button>
           );

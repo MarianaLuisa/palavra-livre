@@ -272,48 +272,84 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
     const wordsSolved = state.rounds.reduce((total, round) => total + round.wordsSolved, 0);
 
     return shell(
-      <section className="championship-panel" aria-labelledby="waiting-results-title">
-        <header className="panel-header">
-          <h1 id="waiting-results-title">Você concluiu o {CHAMPIONSHIP_BRAND.eventLabel}</h1>
-          <p className="panel-subtitle">
-            A classificação oficial é publicada quando o {CHAMPIONSHIP_BRAND.eventLabel} encerrar.
-          </p>
+      <div className="progress-layout">
+        <header className="progress-hero">
+          <div>
+            <p className="eyebrow">Campeonato Norte</p>
+            <h1 id="waiting-results-title">Rodada diária concluída!</h1>
+            <p className="panel-subtitle">
+              Seu desempenho do dia foi registrado e sua pontuação já foi somada à classificação semanal.
+            </p>
+          </div>
         </header>
 
-        <dl className="panel-grid">
-          <div>
-            <dt>Sua pontuação parcial</dt>
-            <dd>{totalScore}</dd>
-          </div>
-          <div>
-            <dt>Palavras descobertas</dt>
-            <dd>{wordsSolved}/13</dd>
-          </div>
-          <div>
-            <dt>Modalidades concluídas</dt>
-            <dd>{participant.completedRounds}/4</dd>
-          </div>
-        </dl>
+        <section className="account-section" aria-labelledby="round-perf-title">
+          <h2 id="round-perf-title">Desempenho da Rodada de Hoje</h2>
+          <dl className="round-summary-stats">
+            <div>
+              <dt>Pontuação da rodada</dt>
+              <dd className="stat-highlight">
+                {totalScore} pts
+              </dd>
+            </div>
+            <div>
+              <dt>Palavras resolvidas</dt>
+              <dd>{wordsSolved}/13</dd>
+            </div>
+            <div>
+              <dt>Modalidades</dt>
+              <dd>{participant.completedRounds}/4 concluídas</dd>
+            </div>
+            <div>
+              <dt>Tentativas totais</dt>
+              <dd>{participant.totalAttempts ?? state.rounds.reduce((acc, r) => acc + r.attemptsUsed, 0)}</dd>
+            </div>
+          </dl>
 
-        <p className="panel-notice">
-          Nada de resultados detalhados enquanto outras pessoas ainda jogam: todos disputam nas
-          mesmas condições.
-        </p>
+          <h3 style={{ marginTop: "1.5rem", marginBottom: "0.85rem" }}>Por modalidade</h3>
+          <ul className="championship-mode-grid">
+            {state.rounds.map((round) => (
+              <li key={round.id} className="championship-mode-card">
+                <header>
+                  <strong className="mode-name">{CHAMPIONSHIP_MODE_LABEL[round.mode]}</strong>
+                  <span className="mode-score">{round.totalScore} pts</span>
+                </header>
+                <dl className="mode-metrics-grid">
+                  <div>
+                    <dt>Palavras</dt>
+                    <dd>{round.wordsSolved}/{round.boardCount}</dd>
+                  </div>
+                  <div>
+                    <dt>Tentativas</dt>
+                    <dd>{round.attemptsUsed}/{round.maxAttempts}</dd>
+                  </div>
+                  <div>
+                    <dt>Bônus</dt>
+                    <dd>{round.bonusScore > 0 ? `+${round.bonusScore}` : "0"}</dd>
+                  </div>
+                </dl>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-        <div className="panel-actions">
+        <div className="panel-actions wrap" style={{ marginTop: "0.5rem" }}>
+          <Link className="primary-button" to={CHAMPIONSHIP_ROUTES.leaderboard}>
+            Ver Classificação Semanal
+          </Link>
           <button
             className="secondary-button"
             type="button"
             onClick={() => void championship.refresh()}
             disabled={championship.busy}
           >
-            Verificar encerramento
+            Atualizar
           </button>
-          <Link className="ghost-button" to={CHAMPIONSHIP_ROUTES.leaderboard}>
-            Ver participantes
+          <Link className="ghost-button" to={CHAMPIONSHIP_ROUTES.freePlay}>
+            Jogar Jogo Livre
           </Link>
         </div>
-      </section>,
+      </div>,
     );
   }
 

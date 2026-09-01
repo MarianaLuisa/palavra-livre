@@ -140,11 +140,11 @@ export function HomePage() {
         <article className="home-card highlight">
           <h2>{CHAMPIONSHIP_BRAND.name}</h2>
           <ul>
-            <li>Uma participação por dia</li>
+            <li>Campeonato Norte semanal de segunda a sexta</li>
+            <li>5 rodadas diárias dentro do mesmo campeonato</li>
             <li>As mesmas 13 palavras para todo mundo</li>
-            <li>As quatro modalidades em sequência</li>
             <li>100 pontos por palavra e bônus por tentativa restante</li>
-            <li>Ranking, pódio e campeão do dia</li>
+            <li>Ranking semanal, pódio e campeão da semana</li>
           </ul>
           <Link className="primary-button" to={CHAMPIONSHIP_ROUTES.championship}>
             Entrar no {CHAMPIONSHIP_BRAND.eventLabel}

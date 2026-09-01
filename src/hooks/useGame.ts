@@ -627,24 +627,6 @@ export function useGame(options: UseGameOptions = {}) {
       status: nextStatus,
     });
 
-    if (nextStatus !== "playing" && !gameFinishedRef.current) {
-      gameFinishedRef.current = true;
-      setCycleResults((previousResults) => ({
-        ...normalizeCycleResults(previousResults),
-        [mode]: {
-          mode,
-          status: nextStatus,
-          attemptsUsed: nextAttempt,
-          boards: finalBoards,
-          finishedAt: new Date().toISOString(),
-        },
-      }));
-      setStats((previousStats) =>
-        recordFinishedGame(previousStats, mode, nextStatus === "won", nextAttempt),
-      );
-      notifyGameFinished(finalBoards, nextAttempt, nextStatus, mode);
-    }
-
     isRevealingRef.current = true;
     setIsRevealing(true);
     setRevealingAnswers(revealingBoards);
@@ -664,10 +646,7 @@ export function useGame(options: UseGameOptions = {}) {
     currentGuessLetters,
     finishReveal,
     mode,
-    notifyGameFinished,
     saveGameProgress,
-    setCycleResults,
-    setStats,
     showGuessError,
     status,
   ]);
@@ -685,6 +664,11 @@ export function useGame(options: UseGameOptions = {}) {
 
       if (key === "Backspace") {
         removeLetter();
+        return true;
+      }
+
+      if (key === " " || key === "Space" || key === "Spacebar") {
+        setActiveTileIndex((previousIndex) => (previousIndex + 1) % WORD_LENGTH);
         return true;
       }
 

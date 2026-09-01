@@ -78,7 +78,7 @@ export function ResultsPanel({ championshipId, currentUserParticipantId }: Resul
     const text = createChampionshipShareText({
       championshipDate: results!.championship.championshipDate,
       championshipFinished: true,
-      position: me.position,
+      position: me.position ?? null,
       totalScore: me.totalScore ?? 0,
       wordsSolved: me.wordsSolved ?? 0,
     });
@@ -111,12 +111,12 @@ export function ResultsPanel({ championshipId, currentUserParticipantId }: Resul
 
       <Podium
         places={sortedParticipants
-          .filter((participant) => participant.position !== null && participant.position <= 3)
+          .filter((participant) => participant.position !== null && participant.position !== undefined && participant.position <= 3)
           .map((participant) => ({
             position: participant.position ?? 0,
             displayName: participant.displayName,
-            totalScore: participant.totalScore,
-            wordsSolved: participant.wordsSolved,
+            totalScore: participant.totalScore ?? null,
+            wordsSolved: participant.wordsSolved ?? null,
           }))}
         highlightName={me?.displayName ?? null}
       />

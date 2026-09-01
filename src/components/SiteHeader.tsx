@@ -63,63 +63,65 @@ export function SiteHeader({
 
   return (
     <header className="site-header" ref={headerRef}>
-      <Link className="site-brand" to={CHAMPIONSHIP_ROUTES.home}>
-        <img className="brand-mark" src="/palavra-livre.svg" alt="" />
-        <span>Palavra Livre</span>
-      </Link>
+      <div className="site-header-inner">
+        <Link className="site-brand" to={CHAMPIONSHIP_ROUTES.home}>
+          <img className="brand-mark" src="/palavra-livre.svg" alt="" />
+          <span>Palavra Livre</span>
+        </Link>
 
-      <nav className="site-nav" aria-label="Navegação principal">
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.to}
-            className={pathname === item.to ? "site-nav-link active" : "site-nav-link"}
-            to={item.to}
-            aria-current={pathname === item.to ? "page" : undefined}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+        <nav className="site-nav" aria-label="Navegação principal">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.to}
+              className={pathname === item.to ? "site-nav-link active" : "site-nav-link"}
+              to={item.to}
+              aria-current={pathname === item.to ? "page" : undefined}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
-      {controlContent !== undefined && controlContent !== null ? (
-        <div className="site-control-menu">
-          <button
-            className="site-control-trigger"
-            type="button"
-            aria-expanded={controlOpen}
-            aria-haspopup="dialog"
-            onClick={() => setControlOpen((current) => !current)}
-          >
-            <span>{controlLabel}</span>
-            {controlSummary !== undefined ? <small>{controlSummary}</small> : null}
-          </button>
-          <div
-            className={controlOpen ? "site-control-dropdown open" : "site-control-dropdown"}
-            role="dialog"
-            aria-label="Controles da partida"
-            onClick={(event) => {
-              const target = event.target;
-              if (target instanceof HTMLElement && target.closest("button,a")) {
-                setControlOpen(false);
-              }
-            }}
-          >
-            {controlContent}
+        {controlContent !== undefined && controlContent !== null ? (
+          <div className="site-control-menu">
+            <button
+              className="site-control-trigger"
+              type="button"
+              aria-expanded={controlOpen}
+              aria-haspopup="dialog"
+              onClick={() => setControlOpen((current) => !current)}
+            >
+              <span>{controlLabel}</span>
+              {controlSummary !== undefined ? <small>{controlSummary}</small> : null}
+            </button>
+            <div
+              className={controlOpen ? "site-control-dropdown open" : "site-control-dropdown"}
+              role="dialog"
+              aria-label="Controles da partida"
+              onClick={(event) => {
+                const target = event.target;
+                if (target instanceof HTMLElement && target.closest("button,a")) {
+                  setControlOpen(false);
+                }
+              }}
+            >
+              {controlContent}
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      <div className="site-header-actions">
-        <AccountMenu />
-        <button
-          className="tool-button icon-button"
-          type="button"
-          onClick={onToggleTheme}
-          aria-label={nextThemeLabel}
-          title={nextThemeLabel}
-        >
-          {theme === "dark" ? "Claro" : "Escuro"}
-        </button>
+        <div className="site-header-actions">
+          <AccountMenu />
+          <button
+            className="tool-button icon-button"
+            type="button"
+            onClick={onToggleTheme}
+            aria-label={nextThemeLabel}
+            title={nextThemeLabel}
+          >
+            {theme === "dark" ? "Claro" : "Escuro"}
+          </button>
+        </div>
       </div>
     </header>
   );

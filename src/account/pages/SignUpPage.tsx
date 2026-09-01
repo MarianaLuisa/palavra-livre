@@ -83,7 +83,7 @@ export function SignUpPage() {
         <h1 id="signup-title">Criar conta</h1>
         <p className="panel-subtitle">
           Sua conta guarda o histórico de partidas, a sequência de dias e o desempenho no
-          Campeonato Diário.
+          Campeonato Norte.
         </p>
       </header>
 

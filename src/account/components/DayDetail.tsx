@@ -73,7 +73,7 @@ export function DayDetail({ day, hadChampionship, onClose }: DayDetailProps) {
 
       {day.championship !== null ? (
         <div className="day-detail-championship">
-          <h4>Campeonato Diário</h4>
+          <h4>Rodada diária do Campeonato Norte</h4>
           <p>
             {day.championship.position === null
               ? "Participou"

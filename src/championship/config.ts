@@ -9,9 +9,9 @@ import type { ChampionshipMode } from "./types";
  */
 export const CHAMPIONSHIP_BRAND = {
   /** Nome completo, usado em titulos e no texto de compartilhamento. */
-  name: "Campeonato Semanal",
+  name: "Campeonato Norte",
   /** Nome curto, usado em botoes e navegacao. */
-  shortName: "Campeonato",
+  shortName: "Campeonatos",
   /** Como o participante e chamado. */
   participantLabel: "participante",
   participantLabelPlural: "participantes",

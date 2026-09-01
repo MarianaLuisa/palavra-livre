@@ -8,6 +8,7 @@ import {
   CHAMPIONSHIP_SCORING,
   CHAMPIONSHIP_TIMEZONE,
 } from "./config";
+import { formatNorteWeekRange, getBrazilWeekEnd, getWeekDayColumns } from "./weeklyChampionshipDomain";
 import { ChampionshipError } from "./errors";
 import { rankParticipants } from "./ranking";
 import { calculateRoundScore } from "./scoring";
@@ -35,6 +36,7 @@ import type {
   Leaderboard,
   ParticipantRoundStatus,
   ParticipationStatus,
+  WeeklyDayProgress,
 } from "./types";
 
 /**
@@ -148,7 +150,7 @@ export type AdminPlayerSource = {
 export type LocalEngineOptions = {
   answerPool?: string[];
   validWords?: string[];
-  now?: () => number;
+  now?: number | (() => number);
   random?: () => number;
   allowLateRegistration?: boolean;
   maxDurationMinutes?: number;
@@ -166,25 +168,35 @@ export class LocalChampionshipEngine {
   private playerSource: AdminPlayerSource | null;
   private readonly answerPool: string[];
   private readonly validWords: Set<string>;
-  private readonly now: () => number;
+  private nowFn: () => number;
   private readonly random: () => number;
   private readonly allowLateRegistration: boolean;
   private readonly maxDurationMs: number;
   private idCounter = 0;
 
-  constructor(options: LocalEngineOptions = {}) {
-    this.answerPool = options.answerPool ?? (answersData as string[]);
+  constructor(options: LocalEngineOptions | number = {}) {
+    const opts: LocalEngineOptions = typeof options === "number" ? { now: options } : options;
+    this.answerPool = opts.answerPool ?? (answersData as string[]);
     this.validWords = new Set(
-      (options.validWords ?? (validWordsData as string[])).map(normalizeWord),
+      (opts.validWords ?? (validWordsData as string[])).map(normalizeWord),
     );
     for (const word of this.answerPool) {
       this.validWords.add(normalizeWord(word));
     }
-    this.now = options.now ?? (() => Date.now());
-    this.random = options.random ?? Math.random;
-    this.allowLateRegistration = options.allowLateRegistration ?? false;
-    this.playerSource = options.playerSource ?? null;
-    this.maxDurationMs = (options.maxDurationMinutes ?? 180) * 60_000;
+    const nowOpt = opts.now ?? (() => Date.now());
+    this.nowFn = typeof nowOpt === "function" ? nowOpt : () => nowOpt;
+    this.random = opts.random ?? Math.random;
+    this.allowLateRegistration = opts.allowLateRegistration ?? false;
+    this.playerSource = opts.playerSource ?? null;
+    this.maxDurationMs = (opts.maxDurationMinutes ?? 180) * 60_000;
+  }
+
+  now(): number {
+    return this.nowFn();
+  }
+
+  setTime(now: number | (() => number)): void {
+    this.nowFn = typeof now === "function" ? now : () => now;
   }
 
   private nextId(prefix: string): string {
@@ -223,7 +235,7 @@ export class LocalChampionshipEngine {
 
     const championship: EngineChampionship = {
       id: this.nextId("championship"),
-      name: input.name ?? "Campeonato Diario",
+      name: input.name ?? "Campeonato Norte",
       championshipDate,
       timezone: CHAMPIONSHIP_TIMEZONE,
       registrationOpensAt,
@@ -390,7 +402,7 @@ export class LocalChampionshipEngine {
     return championship;
   }
 
-  private getRounds(championshipId: string): EngineRound[] {
+  getRounds(championshipId: string): EngineRound[] {
     return this.rounds
       .filter((round) => round.championshipId === championshipId)
       .sort((left, right) => left.roundOrder - right.roundOrder);
@@ -406,7 +418,35 @@ export class LocalChampionshipEngine {
     return round;
   }
 
+  ensureCurrentNorteRound(referenceDate?: string): string | null {
+    const targetDate =
+      referenceDate ?? getZonedToday(new Date(this.now()).toISOString(), CHAMPIONSHIP_TIMEZONE);
+    const dateObj = new Date(`${targetDate}T12:00:00Z`);
+    const day = dateObj.getUTCDay(); // 0 is Sunday, 1..5 is Mon..Fri, 6 is Saturday
+
+    if (day < 1 || day > 5) {
+      return null;
+    }
+
+    const existing = [...this.championships.values()].find(
+      (champ) => champ.isOfficial && champ.status !== "CANCELLED" && champ.championshipDate === targetDate,
+    );
+
+    if (existing) {
+      return existing.id;
+    }
+
+    const created = this.createChampionship({
+      name: "Campeonato Norte",
+      championshipDate: targetDate,
+    });
+
+    return created.id;
+  }
+
   getCurrentChampionshipId(): string | null {
+    this.ensureCurrentNorteRound();
+
     const open = [...this.championships.values()]
       .filter((item) => item.status !== "CANCELLED")
       .sort((left, right) => {
@@ -1466,11 +1506,11 @@ export class LocalChampionshipEngine {
   getWeeklyLeaderboard(weekStart?: string): Leaderboard {
     const reference = weekStart ?? getZonedToday(new Date(this.now()).toISOString(), CHAMPIONSHIP_TIMEZONE);
     const start = startOfIsoWeek(reference);
-    const end = addDaysIso(start, 6);
-    const finished = [...this.championships.values()].filter(
+    const end = addDaysIso(start, 4); // Segunda a Sexta
+    const weekChampionships = [...this.championships.values()].filter(
       (championship) =>
-        championship.isOfficial &&
-        championship.status === "FINISHED" &&
+        (championship.isOfficial || championship.name === "Campeonato Norte") &&
+        championship.status !== "CANCELLED" &&
         championship.championshipDate >= start &&
         championship.championshipDate <= end,
     );
@@ -1485,13 +1525,24 @@ export class LocalChampionshipEngine {
         totalAttempts: number;
         totalDurationMs: number;
         status: ParticipationStatus;
+        dailyBreakdown: Record<
+          string,
+          { wordsSolved: number | null; wordsTotal: number; score: number | null; played: boolean }
+        >;
       }
     >();
 
-    for (const championship of finished) {
+    const dayCols = getWeekDayColumns(start);
+
+    for (const championship of weekChampionships) {
       const participants = this.participants.filter(
         (participant) =>
-          participant.championshipId === championship.id && participant.status !== "CANCELLED",
+          participant.championshipId === championship.id &&
+          participant.status !== "CANCELLED" &&
+          (participant.status === "FINISHED" ||
+            participant.completedRounds > 0 ||
+            participant.totalScore > 0 ||
+            participant.startedAt !== null),
       );
 
       for (const participant of participants) {
@@ -1504,6 +1555,7 @@ export class LocalChampionshipEngine {
           totalAttempts: 0,
           totalDurationMs: 0,
           status: "FINISHED" as ParticipationStatus,
+          dailyBreakdown: {},
         };
 
         current.displayName = participant.displayName;
@@ -1512,6 +1564,20 @@ export class LocalChampionshipEngine {
         current.completedRounds += participant.completedRounds;
         current.totalAttempts += participant.totalAttempts;
         current.totalDurationMs += participant.totalDurationMs;
+
+        const played =
+          participant.status === "FINISHED" ||
+          participant.completedRounds > 0 ||
+          participant.totalScore > 0 ||
+          participant.startedAt !== null;
+
+        current.dailyBreakdown[championship.championshipDate] = {
+          wordsSolved: played ? participant.wordsSolved : null,
+          wordsTotal: 13,
+          score: played ? participant.totalScore : null,
+          played,
+        };
+
         totals.set(participant.userId, current);
       }
     }
@@ -1527,34 +1593,54 @@ export class LocalChampionshipEngine {
           left.userId.localeCompare(right.userId)
         );
       })
-      .map((entry, index) => ({
-        participantId: entry.userId,
-        userId: entry.userId,
-        position: index + 1,
-        displayName: entry.displayName,
-        totalScore: entry.totalScore,
-        wordsSolved: entry.wordsSolved,
-        completedRounds: entry.completedRounds,
-        totalAttempts: entry.totalAttempts,
-        totalDurationMs: entry.totalDurationMs,
-        status: entry.status,
-      }));
+      .map((entry, index) => {
+        const days: WeeklyDayProgress[] = dayCols.map((col) => {
+          const dayInfo = entry.dailyBreakdown[col.date];
+          return {
+            date: col.date,
+            weekday: col.weekday,
+            label: col.headerLabel,
+            wordsSolved: dayInfo?.played ? (dayInfo.wordsSolved ?? 0) : null,
+            wordsTotal: 13,
+            score: dayInfo?.played ? dayInfo.score : null,
+            played: !!dayInfo?.played,
+          };
+        });
+
+        return {
+          participantId: entry.userId,
+          userId: entry.userId,
+          position: index + 1,
+          displayName: entry.displayName,
+          totalScore: entry.totalScore,
+          wordsSolved: entry.wordsSolved,
+          completedRounds: entry.completedRounds,
+          totalAttempts: entry.totalAttempts,
+          totalDurationMs: entry.totalDurationMs,
+          status: entry.status,
+          dailyBreakdown: entry.dailyBreakdown,
+          days,
+        };
+      });
+
+    const isFinal = getZonedToday(new Date(this.now()).toISOString(), CHAMPIONSHIP_TIMEZONE) > end;
 
     return {
       championshipId: null,
-      championshipName: "Campeonato Semanal",
+      championshipName: "Campeonato Norte",
       period: "weekly",
-      periodLabel: `${start} a ${end}`,
+      periodLabel: formatNorteWeekRange(start, end),
       weekStart: start,
       weekEnd: end,
-      totalWords: finished.length * 13,
-      totalRounds: finished.length * 4,
-      isFinal: finished.length >= 7,
+      totalWords: 65, // 5 rodadas x 13 palavras
+      totalRounds: 20, // 5 rodadas x 4 modalidades
+      status: isFinal ? "FINISHED" : "IN_PROGRESS",
+      isFinal,
       entries: ranked,
     };
   }
 
-  getResults(championshipId?: string): ChampionshipResults {
+  getResults(championshipId?: string, currentUserId?: string | null): ChampionshipResults {
     const target = championshipId ?? this.getCurrentChampionshipId();
 
     if (target === null) {
@@ -1592,26 +1678,29 @@ export class LocalChampionshipEngine {
       })),
       participants: leaderboard.entries.map((entry) => ({
         ...entry,
-        rounds: this.getRounds(target).map((round) => {
-          const participation = this.participantRounds.find(
-            (item) => item.participantId === entry.participantId && item.roundId === round.id,
-          );
+        // Privacidade: detalhamento de rodadas APENAS para o usuario dono
+        rounds: currentUserId && entry.userId === currentUserId
+          ? this.getRounds(target).map((round) => {
+              const participation = this.participantRounds.find(
+                (item) => item.participantId === entry.participantId && item.roundId === round.id,
+              );
 
-          return {
-            mode: round.mode,
-            roundOrder: round.roundOrder,
-            status: participation?.status ?? "NOT_STARTED",
-            attemptsUsed: participation?.attemptsUsed ?? 0,
-            attemptsLeft: Math.max(round.maxAttempts - (participation?.attemptsUsed ?? 0), 0),
-            wordsSolved: participation?.wordsSolved ?? 0,
-            totalWords: round.boardCount,
-            allWordsSolved: participation?.allWordsSolved ?? false,
-            baseScore: participation?.baseScore ?? 0,
-            bonusScore: participation?.bonusScore ?? 0,
-            totalScore: participation?.totalScore ?? 0,
-            durationMs: participation?.durationMs ?? 0,
-          };
-        }),
+              return {
+                mode: round.mode,
+                roundOrder: round.roundOrder,
+                status: participation?.status ?? "NOT_STARTED",
+                attemptsUsed: participation?.attemptsUsed ?? 0,
+                attemptsLeft: Math.max(round.maxAttempts - (participation?.attemptsUsed ?? 0), 0),
+                wordsSolved: participation?.wordsSolved ?? 0,
+                totalWords: round.boardCount,
+                allWordsSolved: participation?.allWordsSolved ?? false,
+                baseScore: participation?.baseScore ?? 0,
+                bonusScore: participation?.bonusScore ?? 0,
+                totalScore: participation?.totalScore ?? 0,
+                durationMs: participation?.durationMs ?? 0,
+              };
+            })
+          : [],
       })),
     };
   }
@@ -1716,7 +1805,7 @@ export class LocalChampionshipEngine {
     const serverNow = new Date(this.now()).toISOString();
     const today = getZonedToday(serverNow, CHAMPIONSHIP_TIMEZONE);
     const todayId = this.getTodayChampionshipId(today);
-    const target = championshipId ?? todayId ?? this.getCurrentChampionshipId();
+    const target = championshipId ?? todayId ?? null;
     const emptyCounters = {
       registered: 0,
       started: 0,
@@ -1963,7 +2052,7 @@ export class LocalChampionshipService implements ChampionshipService {
   }
 
   async getResults(championshipId?: string): Promise<ChampionshipResults> {
-    return this.engine.getResults(championshipId);
+    return this.engine.getResults(championshipId, this.userId);
   }
 
   async getHistory(limit = 20, offset = 0): Promise<ChampionshipHistoryItem[]> {

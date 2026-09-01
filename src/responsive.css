@@ -62,35 +62,39 @@ code,
 /* Grades fluidas: minmax(Xrem, 1fr) estoura quando o container e mais
    estreito que X. O min() faz a coluna nunca passar de 100%. */
 .home-options {
-  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
 }
 
 .panel-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
-}
-
-.admin-hero-facts {
-  grid-template-columns: repeat(auto-fit, minmax(min(8.5rem, 100%), 1fr));
-}
-
-.admin-schedule-form {
   grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
 }
 
-.admin-quick-grid {
+.admin-hero-facts {
+  grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
+}
+
+.admin-schedule-form {
   grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+}
+
+.admin-quick-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
 }
 
 .stat-grid,
 .home-summary-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(8rem, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
 }
 
 .day-detail-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(7.5rem, 100%), 1fr));
 }
 
 .mode-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+}
+
+.comparison-list {
   grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
 }
 
@@ -119,6 +123,18 @@ code,
    760px - TABLET EM PE
    ========================================================= */
 
+@media (max-width: 900px) {
+  .round-summary-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .championship-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+}
+
 @media (max-width: 760px) {
   .admin-schedule-form {
     grid-template-columns: minmax(0, 1fr);
@@ -131,6 +147,26 @@ code,
   .mode-list,
   .home-options {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .round-summary-stats {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .championship-mode-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  .mode-metrics-grid {
+    gap: 0.35rem;
+  }
+
+  .mode-metrics-grid div {
+    padding: 0.4rem 0.25rem;
   }
 }
 

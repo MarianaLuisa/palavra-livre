@@ -17,11 +17,10 @@ import { Link } from "../../router/router";
 type DialogKind = "startNow" | "cancel" | "finish" | null;
 
 /**
- * Painel administrativo do Campeonato Diário.
+ * Painel administrativo do Campeonato Norte.
  *
- * Toda ação daqui chama uma RPC que valida auth.uid() contra
- * championship_admins. Esconder botões é só ergonomia: a autorização
- * de verdade acontece no banco.
+ * O campeonato semanal é gerado automaticamente. O papel do admin é
+ * acompanhar status, participantes e métricas do sistema.
  */
 export function AdminPage() {
   const admin = useAdminChampionship();

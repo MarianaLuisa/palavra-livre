@@ -1,10 +1,12 @@
-import { PARTICIPATION_STATUS_LABEL } from "../config";
-import { formatDuration, formatPosition, formatScore } from "../format";
+import { formatPosition, formatScore } from "../format";
+import { getWeekDayColumns } from "../weeklyChampionshipDomain";
 import type { LeaderboardEntry } from "../types";
 
 type LeaderboardTableProps = {
   entries: LeaderboardEntry[];
-  isFinal: boolean;
+  isFinal?: boolean;
+  isWeekly?: boolean;
+  weekStart?: string;
   highlightParticipantId?: string | null;
   emptyMessage?: string;
   totalWords?: number | null;
@@ -24,20 +26,20 @@ function getRowClassName(entry: LeaderboardEntry, isCurrentUser: boolean): strin
 }
 
 function compareLeaderboardEntries(left: LeaderboardEntry, right: LeaderboardEntry): number {
-  if (left.position !== null || right.position !== null) {
-    return (left.position ?? Number.MAX_SAFE_INTEGER) - (right.position ?? Number.MAX_SAFE_INTEGER);
+  if (left.position !== null && left.position !== undefined && right.position !== null && right.position !== undefined) {
+    return left.position - right.position;
   }
 
   return (
     (right.totalScore ?? -1) - (left.totalScore ?? -1) ||
     (right.wordsSolved ?? -1) - (left.wordsSolved ?? -1) ||
-    right.completedRounds - left.completedRounds ||
+    (right.completedRounds ?? 0) - (left.completedRounds ?? 0) ||
     (left.totalAttempts ?? Number.MAX_SAFE_INTEGER) -
       (right.totalAttempts ?? Number.MAX_SAFE_INTEGER) ||
     (left.totalDurationMs ?? Number.MAX_SAFE_INTEGER) -
       (right.totalDurationMs ?? Number.MAX_SAFE_INTEGER) ||
-    left.displayName.localeCompare(right.displayName, "pt-BR") ||
-    left.participantId.localeCompare(right.participantId)
+    (left.displayName ?? "").localeCompare(right.displayName ?? "", "pt-BR") ||
+    (left.participantId ?? left.userId ?? "").localeCompare(right.participantId ?? right.userId ?? "")
   );
 }
 
@@ -47,80 +49,119 @@ export function sortLeaderboardEntries<T extends LeaderboardEntry>(entries: T[])
 
 export function LeaderboardTable({
   entries,
-  isFinal,
+  isWeekly = false,
+  weekStart,
   highlightParticipantId = null,
   emptyMessage = "Ninguém inscrito ainda.",
   totalWords = 13,
-  totalRounds = 4,
 }: LeaderboardTableProps) {
-  if (entries.length === 0) {
+  if (!entries || entries.length === 0) {
     return <p className="empty-state">{emptyMessage}</p>;
   }
 
   const sortedEntries = sortLeaderboardEntries(entries);
+  const weekStartIso =
+    weekStart ??
+    sortedEntries[0]?.days?.[0]?.date ??
+    new Date().toISOString().slice(0, 10);
+  const weekDayColumns = isWeekly ? getWeekDayColumns(weekStartIso) : [];
 
   return (
     <div className="table-scroll">
       <table className="leaderboard-table">
-        <caption className="visually-hidden">
-          {isFinal
-            ? "Classificação final do campeonato"
-            : "Lista parcial de participantes. Os detalhes aparecem no encerramento."}
-        </caption>
+        <caption className="visually-hidden">Classificação dos participantes</caption>
         <thead>
           <tr>
-            <th scope="col">#</th>
-            <th scope="col">Participante</th>
-            {isFinal ? (
+            <th scope="col" style={{ width: "4.5rem", textAlign: "center" }}>Posição</th>
+            <th scope="col" style={{ minWidth: "10rem", textAlign: "left" }}>Jogador</th>
+            <th scope="col" style={{ width: "8.5rem", textAlign: "right" }}>
+              {isWeekly ? "Pontuação Total" : "Pontuação da Rodada"}
+            </th>
+            {isWeekly ? (
               <>
-                <th scope="col">Pontos</th>
-                <th scope="col">Palavras</th>
-                <th scope="col">Modalidades</th>
-                <th scope="col">Tentativas</th>
-                <th scope="col">Tempo</th>
+                {weekDayColumns.map((col) => (
+                  <th key={col.date} scope="col" style={{ width: "6.5rem", textAlign: "center" }}>
+                    {col.headerLabel}
+                  </th>
+                ))}
+                <th scope="col" style={{ width: "9rem", textAlign: "center" }}>Total Geral de Palavras</th>
               </>
             ) : (
-              <th scope="col">Modalidades</th>
+              <th scope="col" style={{ width: "9rem", textAlign: "center" }}>Palavras Acertadas</th>
             )}
-            <th scope="col">Situação</th>
           </tr>
         </thead>
         <tbody>
           {sortedEntries.map((entry, index) => {
-            const isCurrentUser = entry.participantId === highlightParticipantId;
+            const rowKey = entry.participantId ?? entry.userId ?? `entry-${index}-${entry.displayName}`;
+            const isCurrentUser =
+              highlightParticipantId !== null &&
+              (entry.participantId === highlightParticipantId || entry.userId === highlightParticipantId);
+            const position = entry.position ?? index + 1;
 
             return (
               <tr
-                key={entry.participantId}
+                key={rowKey}
                 className={getRowClassName(entry, isCurrentUser)}
                 aria-current={isCurrentUser ? "true" : undefined}
               >
-                <td>{isFinal ? formatPosition(entry.position ?? index + 1) : index + 1}</td>
-                <td>
-                  {entry.displayName}
+                <td style={{ textAlign: "center" }}>{formatPosition(position)}</td>
+                <td style={{ textAlign: "left" }}>
+                  <span className="player-name">{entry.displayName}</span>
                   {isCurrentUser ? <span className="you-badge">você</span> : null}
                 </td>
-                {isFinal ? (
+                <td style={{ textAlign: "right" }}>
+                  <strong>{formatScore(entry.totalScore)} pts</strong>
+                </td>
+                {isWeekly ? (
                   <>
-                    <td>{formatScore(entry.totalScore)}</td>
-                    <td>
-                      {entry.wordsSolved ?? "-"}
-                      {totalWords !== null ? `/${totalWords}` : ""}
+                    {weekDayColumns.map((col) => {
+                      const dayProgress =
+                        entry.days?.find(
+                          (d) =>
+                            d.date === col.date ||
+                            (typeof d.date === "string" && d.date.startsWith(col.date)) ||
+                            d.weekday === col.weekday,
+                        ) ??
+                        (entry.dailyBreakdown?.[col.date]
+                          ? {
+                              played: entry.dailyBreakdown[col.date].played,
+                              wordsSolved: entry.dailyBreakdown[col.date].wordsSolved,
+                              wordsTotal: entry.dailyBreakdown[col.date].wordsTotal,
+                            }
+                          : null);
+
+                      const played = Boolean(dayProgress?.played);
+                      const words = dayProgress?.wordsSolved;
+                      const wordsTotal = dayProgress?.wordsTotal ?? 13;
+
+                      return (
+                        <td key={col.date} style={{ textAlign: "center" }}>
+                          {played && words !== null && words !== undefined ? (
+                            <span className="daily-words-badge">
+                              {words}/{wordsTotal}
+                            </span>
+                          ) : (
+                            <span className="muted">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td style={{ textAlign: "center" }}>
+                      <strong>
+                        {entry.wordsSolved ?? 0}
+                        {totalWords !== null ? `/${totalWords}` : "/65"}
+                      </strong>
                     </td>
-                    <td>
-                      {entry.completedRounds}
-                      {totalRounds !== null ? `/${totalRounds}` : ""}
-                    </td>
-                    <td>{entry.totalAttempts ?? "-"}</td>
-                    <td>{formatDuration(entry.totalDurationMs)}</td>
                   </>
                 ) : (
-                  <td>
-                    {entry.completedRounds}
-                    {totalRounds !== null ? `/${totalRounds}` : ""}
+                  <td style={{ textAlign: "center" }}>
+                    <strong>
+                      {entry.wordsSolved ?? 0}
+                      {totalWords !== null ? `/${totalWords}` : ""}
+                    </strong>
                   </td>
                 )}
-                <td>{PARTICIPATION_STATUS_LABEL[entry.status] ?? entry.status}</td>
               </tr>
             );
           })}

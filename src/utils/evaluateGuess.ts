@@ -1,12 +1,14 @@
 import type { EvaluatedLetter, LetterStatus } from "../types/game";
 import { normalizeWord } from "./normalizeWord";
+import { repairMojibake } from "./repairMojibake";
 
 export function evaluateGuess(guess: string, answer: string): EvaluatedLetter[] {
+  const cleanAnswer = repairMojibake(answer).normalize("NFC");
   const normalizedGuess = normalizeWord(guess);
-  const normalizedAnswer = normalizeWord(answer);
+  const normalizedAnswer = normalizeWord(cleanAnswer);
   const guessLetters = [...normalizedGuess];
   const answerLetters = [...normalizedAnswer];
-  const displayAnswerLetters = [...answer.toLowerCase()];
+  const displayAnswerLetters = [...cleanAnswer.toLowerCase()];
   const remainingLetters = new Map<string, number>();
 
   const evaluated: EvaluatedLetter[] = guessLetters.map((letter) => ({

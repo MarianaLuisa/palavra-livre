@@ -105,13 +105,6 @@ type EngineGame = {
   completed: boolean;
 };
 
-export type LocalAccountEngineOptions = {
-  now?: () => number;
-  /** Simula a confirmacao por e-mail ligada no projeto Supabase. */
-  requireEmailConfirmation?: boolean;
-  championshipSource?: ChampionshipActivitySource;
-};
-
 function toDate(value: string): Date {
   return new Date(`${value}T12:00:00Z`);
 }
@@ -141,6 +134,12 @@ function round1(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
+export type LocalAccountEngineOptions = {
+  now?: number | (() => number);
+  requireEmailConfirmation?: boolean;
+  championshipSource?: ChampionshipActivitySource;
+};
+
 export class LocalAccountEngine {
   private readonly users = new Map<string, EngineUser>();
   private readonly profiles = new Map<string, EngineProfile>();
@@ -151,10 +150,33 @@ export class LocalAccountEngine {
   private championshipSource: ChampionshipActivitySource | null;
   private idCounter = 0;
 
-  constructor(options: LocalAccountEngineOptions = {}) {
-    this.now = options.now ?? (() => Date.now());
-    this.requireEmailConfirmation = options.requireEmailConfirmation ?? false;
-    this.championshipSource = options.championshipSource ?? null;
+  constructor(options: LocalAccountEngineOptions | number = {}) {
+    const opts: LocalAccountEngineOptions =
+      typeof options === "number" ? { now: () => options } : options;
+    const nowOpt = opts.now ?? (() => Date.now());
+    this.now = typeof nowOpt === "function" ? nowOpt : () => nowOpt;
+    this.requireEmailConfirmation = opts.requireEmailConfirmation ?? false;
+    this.championshipSource = opts.championshipSource ?? null;
+  }
+
+  upsertProfile(userId: string, displayName: string, username: string | null = null): EngineProfile {
+    const existing = this.profiles.get(userId);
+    if (existing) {
+      existing.displayName = displayName;
+      if (username !== null) {
+        existing.username = username;
+      }
+      return existing;
+    }
+    const profile: EngineProfile = {
+      id: userId,
+      username,
+      displayName,
+      createdAt: this.now(),
+      dailyGoal: 3,
+    };
+    this.profiles.set(userId, profile);
+    return profile;
   }
 
   setChampionshipSource(source: ChampionshipActivitySource): void {
@@ -502,7 +524,10 @@ export class LocalAccountEngine {
   private participations(userId: string): ChampionshipParticipationRecord[] {
     return (this.championshipSource?.getParticipations(userId) ?? []).filter(
       (item) =>
-        item.startedAt !== null &&
+        (item.startedAt !== null ||
+          item.completedRounds > 0 ||
+          item.totalScore > 0 ||
+          item.participationStatus === "FINISHED") &&
         item.participationStatus !== "CANCELLED" &&
         item.championshipStatus !== "CANCELLED",
     );
@@ -557,7 +582,7 @@ export class LocalAccountEngine {
       current: activeRun?.length ?? 0,
       longest: runs.reduce((longest, run) => Math.max(longest, run.length), 0),
       lastActiveDate,
-      atRisk: lastActiveDate === yesterday,
+      atRisk: activeRun !== undefined && lastActiveDate === yesterday,
     };
   }
 
@@ -569,7 +594,7 @@ export class LocalAccountEngine {
       (game) => game.userId === userId && inRange(game.playedDate),
     );
     const participations = this.participations(userId).filter(
-      (item) => item.championshipStatus === "FINISHED" && inRange(item.championshipDate),
+      (item) => item.championshipStatus !== "CANCELLED" && inRange(item.championshipDate),
     );
     const activeDays = this.activityDays(userId).filter(inRange);
 
@@ -740,7 +765,7 @@ export class LocalAccountEngine {
 
   getChampionshipHistory(userId: string, limit: number, offset: number): ChampionshipHistoryEntry[] {
     const championships = (this.championshipSource?.getOfficialChampionships() ?? [])
-      .filter((item) => item.status === "FINISHED")
+      .filter((item) => item.status !== "CANCELLED")
       .sort((left, right) => right.date.localeCompare(left.date))
       .slice(offset, offset + limit);
     const mine = this.participations(userId);

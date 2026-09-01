@@ -182,7 +182,7 @@ export function ProfilePage() {
           </section>
 
           <section className="account-section" aria-labelledby="profile-championship-title">
-            <h2 id="profile-championship-title">Campeonato Diário</h2>
+            <h2 id="profile-championship-title">Campeonato Norte</h2>
             <dl className="stat-grid">
               <div>
                 <dt>Disputados</dt>

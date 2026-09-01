@@ -103,17 +103,29 @@ export type ChampionshipState = {
   currentRoundId: string | null;
 };
 
-export type LeaderboardEntry = {
-  participantId: string;
-  userId: string;
-  position: number | null;
-  displayName: string;
-  totalScore: number | null;
+export type WeeklyDayProgress = {
+  date: string;
+  weekday: number;
+  label: string;
   wordsSolved: number | null;
-  completedRounds: number;
-  totalAttempts: number | null;
-  totalDurationMs: number | null;
-  status: ParticipationStatus;
+  wordsTotal: number;
+  score: number | null;
+  played: boolean;
+};
+
+export type LeaderboardEntry = {
+  participantId?: string;
+  userId?: string;
+  position?: number | null;
+  displayName: string;
+  totalScore?: number | null;
+  wordsSolved?: number | null;
+  completedRounds?: number;
+  totalAttempts?: number | null;
+  totalDurationMs?: number | null;
+  status?: ParticipationStatus;
+  dailyBreakdown?: Record<string, { wordsSolved: number | null; wordsTotal: number; score: number | null; played: boolean }>;
+  days?: WeeklyDayProgress[];
 };
 
 export type Leaderboard = {
@@ -129,6 +141,7 @@ export type Leaderboard = {
   status?: ChampionshipStatus;
   isFinal: boolean;
   entries: LeaderboardEntry[];
+  participants?: LeaderboardEntry[];
 };
 
 export type ResultRoundBreakdown = {

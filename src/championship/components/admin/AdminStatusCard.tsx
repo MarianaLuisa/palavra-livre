@@ -50,7 +50,7 @@ export function AdminStatusCard({
     <section className="admin-hero" aria-labelledby="admin-hero-title">
       <header className="admin-hero-header">
         <div>
-          <p className="eyebrow">Campeonato Diário — Administração</p>
+          <p className="eyebrow">Campeonato Norte — Administração</p>
           <h1 id="admin-hero-title">{formatLongDate(championship.championshipDate)}</h1>
         </div>
         <div className="admin-hero-badges">

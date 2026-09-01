@@ -139,6 +139,11 @@ export function useRoundInput({
         return true;
       }
 
+      if (key === " " || key === "Space" || key === "Spacebar") {
+        setActiveTileIndex((previousIndex) => (previousIndex + 1) % WORD_LENGTH);
+        return true;
+      }
+
       if (key === "Delete") {
         setLetters((previousLetters) => {
           const result = clearGuessLetter(previousLetters, activeTileIndex);
