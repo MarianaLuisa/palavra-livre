@@ -14,6 +14,7 @@ import { ChampionshipPage } from "./championship/pages/ChampionshipPage";
 import { HistoryPage } from "./championship/pages/HistoryPage";
 import { LeaderboardPage } from "./championship/pages/LeaderboardPage";
 import { CHAMPIONSHIP_ROUTES } from "./championship/config";
+import { ChampionshipErrorBoundary } from "./championship/components/ChampionshipErrorBoundary";
 import { SiteHeader } from "./components/SiteHeader";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { FreePlayPage } from "./pages/FreePlayPage";
@@ -60,7 +61,9 @@ function AppRoutes({
   if (pathname === normalizePath(CHAMPIONSHIP_ROUTES.championship)) {
     return (
       <div className="app-shell championship-game-shell">
-        <ChampionshipPage theme={theme} onToggleTheme={onToggleTheme} />
+        <ChampionshipErrorBoundary>
+          <ChampionshipPage theme={theme} onToggleTheme={onToggleTheme} />
+        </ChampionshipErrorBoundary>
       </div>
     );
   }

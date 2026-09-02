@@ -4,24 +4,19 @@ import { SiteHeader } from "../../components/SiteHeader";
 import { Link } from "../../router/router";
 import type { ThemeMode } from "../../types/game";
 import { AdminQuickCreate } from "../components/AdminQuickCreate";
+import { ChampionshipErrorBoundary } from "../components/ChampionshipErrorBoundary";
 import { RoundCompletionModal } from "../components/RoundCompletionModal";
 import { RoundProgress } from "../components/RoundProgress";
 import { CHAMPIONSHIP_BRAND, CHAMPIONSHIP_MODE_LABEL, CHAMPIONSHIP_ROUTES } from "../config";
+import { getRoundId } from "../types";
 import { JoinPanel } from "../panels/JoinPanel";
 import { LobbyPanel } from "../panels/LobbyPanel";
 import { ResultsPanel } from "../panels/ResultsPanel";
 import { RoundPanel } from "../panels/RoundPanel";
 import { useChampionship } from "../useChampionship";
 import { useRoundCelebration } from "../useRoundCelebration";
+import { getBrazilCurrentDate } from "../timezone";
 
-/**
- * Orquestra a experiência do campeonato.
- *
- * O cabeçalho principal vem sempre do SiteHeader global. Os controles
- * específicos da rodada ficam abaixo dele para não duplicar menus.
- *
- * A tela exibida deriva SEMPRE do estado devolvido pelo servidor.
- */
 type ChampionshipPageProps = {
   theme: ThemeMode;
   onToggleTheme: () => void;
@@ -33,38 +28,60 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
   const celebration = useRoundCelebration(championship.state);
 
   const state = championship.state;
-  const rounds = state?.rounds ?? [];
+  const championshipSummary = state?.championship ?? null;
+  const rounds = Array.isArray(state?.rounds) ? state.rounds : [];
+  const participant = state?.participant ?? null;
   const activeRound = celebration.round ?? championship.currentRound;
 
   function renderHeaderControls() {
-    if (activeRound === null) {
+    if (!activeRound) {
       return null;
     }
 
+    const attemptsUsed = activeRound.attemptsUsed ?? 0;
+    const maxAttempts =
+      activeRound.maxAttempts ??
+      (activeRound.mode === "SIMPLE"
+        ? 6
+        : activeRound.mode === "DUET"
+          ? 7
+          : activeRound.mode === "QUARTET"
+            ? 9
+            : 11);
+    const wordsSolved = activeRound.wordsSolved ?? 0;
+    const boardCount =
+      activeRound.boardCount ??
+      (activeRound.mode === "SIMPLE"
+        ? 1
+        : activeRound.mode === "DUET"
+          ? 2
+          : activeRound.mode === "QUARTET"
+            ? 4
+            : 6);
+    const remainingAttempts = Math.max(0, maxAttempts - attemptsUsed);
+
     return (
       <div className="site-control-content championship-header-controls">
-        <RoundProgress rounds={rounds} currentRoundId={activeRound.id} />
+        <RoundProgress rounds={rounds} currentRoundId={getRoundId(activeRound)} />
         <section className="status-panel" aria-label="Situação da modalidade">
           <div>
             <span>Modalidade</span>
-            <strong>{CHAMPIONSHIP_MODE_LABEL[activeRound.mode]}</strong>
+            <strong>{CHAMPIONSHIP_MODE_LABEL[activeRound.mode] ?? activeRound.mode}</strong>
           </div>
           <div>
             <span>Tentativas</span>
             <strong>
-              {activeRound.attemptsUsed}/{activeRound.maxAttempts}
+              {attemptsUsed}/{maxAttempts}
             </strong>
           </div>
           <div>
             <span>Restantes</span>
-            <strong>
-              {Math.max(activeRound.maxAttempts - activeRound.attemptsUsed, 0)}
-            </strong>
+            <strong>{remainingAttempts}</strong>
           </div>
           <div>
             <span>Resolvidas</span>
             <strong>
-              {activeRound.wordsSolved}/{activeRound.boardCount}
+              {wordsSolved}/{boardCount}
             </strong>
           </div>
         </section>
@@ -72,20 +89,31 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
     );
   }
 
-  /**
-   * @param overlay Modais e sobreposições. Precisam ficar FORA do
-   *   <main>, porque a área de jogo é um container de consulta
-   *   (`container-type`), e isso a torna o bloco de referência de
-   *   qualquer descendente `position: fixed`. Um modal ali dentro
-   *   deixaria de cobrir a tela e passaria a cobrir só o tabuleiro.
-   */
   function shell(content: ReactNode, playing = false, overlay: ReactNode = null) {
-    const activeModeLabel =
-      activeRound === null ? null : CHAMPIONSHIP_MODE_LABEL[activeRound.mode];
-    const shellClassName =
-      activeRound === null
+    const activeModeLabel = !activeRound
+      ? null
+      : (CHAMPIONSHIP_MODE_LABEL[activeRound.mode] ?? activeRound.mode);
+    const boardCount = !activeRound
+      ? 1
+      : activeRound.boardCount ??
+        (activeRound.mode === "SIMPLE"
+          ? 1
+          : activeRound.mode === "DUET"
+            ? 2
+            : activeRound.mode === "QUARTET"
+              ? 4
+              : 6);
+    const attemptsUsed = activeRound ? activeRound.attemptsUsed ?? 0 : 0;
+    const maxAttempts = activeRound ? activeRound.maxAttempts ?? 6 : 6;
+    const wordsSolved = activeRound ? activeRound.wordsSolved ?? 0 : 0;
+
+    // While playing, use the exact same responsive game shell as Jogo Livre.
+    // Championship-only selectors had drifted and were shrinking the keyboard.
+    const shellClassName = playing
+      ? `free-play-game-shell boards-${boardCount}`
+      : !activeRound
         ? "championship-page-shell"
-        : `championship-page-shell boards-${activeRound.boardCount}`;
+        : `championship-page-shell boards-${boardCount}`;
 
     return (
       <div className={shellClassName}>
@@ -94,13 +122,17 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
           onToggleTheme={onToggleTheme}
           controlLabel="Modalidade"
           controlSummary={
-            activeRound === null || activeModeLabel === null
+            !activeRound || activeModeLabel === null
               ? undefined
-              : `${activeModeLabel} · ${activeRound.attemptsUsed}/${activeRound.maxAttempts} · ${activeRound.wordsSolved}/${activeRound.boardCount}`
+              : `${activeModeLabel} · ${attemptsUsed}/${maxAttempts} · ${wordsSolved}/${boardCount}`
           }
           controlContent={renderHeaderControls()}
         />
-        <main className={playing ? "game-layout" : "championship-layout"}>{content}</main>
+        <main className={playing ? "game-layout" : "championship-layout"}>
+          <ChampionshipErrorBoundary onReset={() => void championship.refresh()}>
+            {content}
+          </ChampionshipErrorBoundary>
+        </main>
         {overlay}
       </div>
     );
@@ -124,15 +156,13 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
     );
   }
 
-  if (championship.loading) {
+  if (championship.loading && state === null) {
     return shell(
       <section className="championship-panel">
         <p className="loading-state">Carregando o {CHAMPIONSHIP_BRAND.eventLabel}...</p>
       </section>,
     );
   }
-
-  const championshipSummary = state?.championship ?? null;
 
   if (state === null || championshipSummary === null) {
     return shell(
@@ -156,8 +186,6 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
       </section>,
     );
   }
-
-  const participant = state.participant;
 
   if (championshipSummary.status === "FINISHED") {
     return shell(
@@ -237,16 +265,17 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
 
   if (celebration.round !== null) {
     const finished = celebration.round;
-    const nextRound = state.rounds
-      .filter((round) => round.roundOrder > finished.roundOrder)
+    const safeRounds = Array.isArray(state?.rounds) ? state.rounds : [];
+    const nextRound = safeRounds
+      .filter((round) => round && round.roundOrder > finished.roundOrder)
       .sort((left, right) => left.roundOrder - right.roundOrder)[0];
 
     return shell(
       <RoundPanel
         round={finished}
-        rounds={state.rounds}
+        rounds={safeRounds}
         previousRound={null}
-        reviewMode
+        reviewMode={true}
         busy={championship.busy}
         serverError={null}
         onStartRound={() => undefined}
@@ -265,11 +294,29 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
     );
   }
 
-  const currentRound = championship.currentRound;
+  const safeRounds = Array.isArray(state?.rounds) ? state.rounds : [];
+  
+  // Seleciona a rodada ativa ou a próxima pendente
+  const currentRound =
+    championship.currentRound ??
+    safeRounds.find((r: any) => r?.status === "IN_PROGRESS") ??
+    safeRounds.find(
+      (r: any) =>
+        r?.status !== "COMPLETED" &&
+        r?.status !== "FAILED" &&
+        r?.status !== "EXPIRED",
+    ) ??
+    safeRounds[0] ??
+    null;
 
-  if (currentRound === null) {
-    const totalScore = state.rounds.reduce((total, round) => total + round.totalScore, 0);
-    const wordsSolved = state.rounds.reduce((total, round) => total + round.wordsSolved, 0);
+  // Participante só é considerado finalizado se tiver concluído as 4 rodadas E nenhuma estiver ativa
+  const isParticipantFinished =
+    participant.status === "FINISHED" ||
+    ((participant.completedRounds ?? 0) >= 4 && (!currentRound || currentRound.status === "COMPLETED"));
+
+  if (isParticipantFinished) {
+    const totalScore = safeRounds.reduce((total, round) => total + (round?.totalScore ?? 0), 0);
+    const wordsSolved = safeRounds.reduce((total, round) => total + (round?.wordsSolved ?? 0), 0);
 
     return shell(
       <div className="progress-layout">
@@ -298,34 +345,34 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
             </div>
             <div>
               <dt>Modalidades</dt>
-              <dd>{participant.completedRounds}/4 concluídas</dd>
+              <dd>{participant.completedRounds ?? 4}/4 concluídas</dd>
             </div>
             <div>
               <dt>Tentativas totais</dt>
-              <dd>{participant.totalAttempts ?? state.rounds.reduce((acc, r) => acc + r.attemptsUsed, 0)}</dd>
+              <dd>{participant.totalAttempts ?? safeRounds.reduce((acc, r) => acc + (r?.attemptsUsed ?? 0), 0)}</dd>
             </div>
           </dl>
 
           <h3 style={{ marginTop: "1.5rem", marginBottom: "0.85rem" }}>Por modalidade</h3>
           <ul className="championship-mode-grid">
-            {state.rounds.map((round) => (
-              <li key={round.id} className="championship-mode-card">
+            {safeRounds.map((round, index) => (
+              <li key={round?.id ?? `mode-${index}`} className="championship-mode-card">
                 <header>
-                  <strong className="mode-name">{CHAMPIONSHIP_MODE_LABEL[round.mode]}</strong>
-                  <span className="mode-score">{round.totalScore} pts</span>
+                  <strong className="mode-name">{CHAMPIONSHIP_MODE_LABEL[round.mode] ?? round.mode}</strong>
+                  <span className="mode-score">{round.totalScore ?? 0} pts</span>
                 </header>
                 <dl className="mode-metrics-grid">
                   <div>
                     <dt>Palavras</dt>
-                    <dd>{round.wordsSolved}/{round.boardCount}</dd>
+                    <dd>{round.wordsSolved ?? 0}/{round.boardCount ?? 1}</dd>
                   </div>
                   <div>
                     <dt>Tentativas</dt>
-                    <dd>{round.attemptsUsed}/{round.maxAttempts}</dd>
+                    <dd>{round.attemptsUsed ?? 0}/{round.maxAttempts ?? 6}</dd>
                   </div>
                   <div>
                     <dt>Bônus</dt>
-                    <dd>{round.bonusScore > 0 ? `+${round.bonusScore}` : "0"}</dd>
+                    <dd>{round.bonusScore && round.bonusScore > 0 ? `+${round.bonusScore}` : "0"}</dd>
                   </div>
                 </dl>
               </li>
@@ -353,22 +400,32 @@ export function ChampionshipPage({ theme, onToggleTheme }: ChampionshipPageProps
     );
   }
 
+  if (currentRound === null) {
+    return shell(
+      <section className="championship-panel">
+        <p className="loading-state">Carregando modalidade do campeonato...</p>
+      </section>,
+    );
+  }
+
   const previousRound =
-    state.rounds
-      .filter((round) => round.roundOrder < currentRound.roundOrder)
+    safeRounds
+      .filter((round) => round && round.roundOrder < currentRound.roundOrder)
       .sort((left, right) => right.roundOrder - left.roundOrder)[0] ?? null;
 
   return shell(
     <RoundPanel
       round={currentRound}
-      rounds={state.rounds}
+      rounds={safeRounds}
       previousRound={currentRound.status === "NOT_STARTED" ? previousRound : null}
       busy={championship.busy}
       serverError={championship.error}
-      onStartRound={(roundId) => void championship.startRound(roundId)}
+      onStartRound={async (roundId) => {
+        const idToStart = roundId || getRoundId(currentRound);
+        await championship.startRound(idToStart);
+      }}
       onSubmitAttempt={championship.submitAttempt}
     />,
     currentRound.status === "IN_PROGRESS",
   );
 }
-

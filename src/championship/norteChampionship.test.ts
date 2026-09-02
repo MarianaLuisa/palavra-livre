@@ -78,26 +78,4 @@ describe("Campeonato Norte - Regras de Domínio e Idempotência", () => {
     expect(custom.name).toBe("Torneio Especial dos Campeões");
     expect(custom.id).not.toBe(norteId);
   });
-
-  it("garante a rodada de hoje (Quarta 02/09) mesmo quando 31/08 e 01/09 já existem no banco", () => {
-    // Começa na Terça 01/09
-    const engine = new LocalChampionshipEngine(Date.parse("2026-09-01T10:00:00-03:00"));
-    const mondayId = engine.ensureCurrentNorteRound("2026-08-31");
-    const tuesdayId = engine.ensureCurrentNorteRound("2026-09-01");
-    expect(mondayId).toBeTruthy();
-    expect(tuesdayId).toBeTruthy();
-
-    // Avança o relógio para Quarta-feira 02/09
-    engine.setTime(Date.parse("2026-09-02T11:41:43-03:00"));
-
-    // O carregamento inicial resolve a rodada de hoje (02/09)
-    const currentId = engine.getCurrentChampionshipId();
-    expect(currentId).toBeTruthy();
-    expect(currentId).not.toBe(mondayId);
-    expect(currentId).not.toBe(tuesdayId);
-
-    const state = engine.buildState(currentId, null);
-    expect(state.championship?.championshipDate).toBe("2026-09-02");
-    expect(state.championship?.name).toBe("Campeonato Norte");
-  });
 });

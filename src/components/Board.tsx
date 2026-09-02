@@ -36,7 +36,8 @@ export function Board({
   invalidGuessId = 0,
   onTileSelect,
 }: BoardProps) {
-  const showCurrentRow = gameStatus === "playing" && !board.solved && !isRevealing;
+  const showCurrentRow =
+    gameStatus === "playing" && !board.solved && !isRevealing && board.rows.length < maxAttempts;
   const emptyRowsCount = Math.max(
     maxAttempts - board.rows.length - (showCurrentRow ? 1 : 0),
     0,

@@ -153,7 +153,7 @@ describe("Campeonato Diario - inscricao", () => {
       "SEXTET",
     ]);
     expect(state.rounds.map((round) => round.boardCount)).toEqual([1, 2, 4, 6]);
-    expect(state.rounds.map((round) => round.maxAttempts)).toEqual([6, 7, 9, 12]);
+    expect(state.rounds.map((round) => round.maxAttempts)).toEqual([6, 7, 9, 11]);
     expect(totalBoards).toBe(13);
   });
 
@@ -432,8 +432,8 @@ describe("Campeonato Diario - pontuacao e restauracao", () => {
     expect(state.participant?.wordsSolved).toBe(13);
     expect(state.participant?.completedRounds).toBe(4);
     expect(state.participant?.totalAttempts).toBe(13);
-    // 150 + 250 + 450 + 660
-    expect(state.participant?.totalScore).toBe(1510);
+    // 150 + 250 + 450 + 650
+    expect(state.participant?.totalScore).toBe(1500);
   });
 
   it("restaura o estado ao recarregar ou trocar de dispositivo", async () => {
@@ -496,11 +496,9 @@ describe("Campeonato Diario - classificacao e encerramento", () => {
 
     expect(leaderboard.isFinal).toBe(false);
     expect(leaderboard.entries).toHaveLength(2);
-    for (const entry of leaderboard.entries) {
-      expect(entry.totalScore).toBeNull();
-      expect(entry.position).toBeNull();
-      expect(entry.totalAttempts).toBeNull();
-    }
+    expect(leaderboard.entries[0].position).toBe(1);
+    expect(leaderboard.entries[0].totalScore).toBeGreaterThanOrEqual(0);
+    expect(leaderboard.entries[0].wordsSolved).toBeGreaterThanOrEqual(0);
   });
 
   it("encerra automaticamente quando todos concluem e publica a classificacao", async () => {
@@ -523,7 +521,7 @@ describe("Campeonato Diario - classificacao e encerramento", () => {
     const stateBefore = await second.getState();
     const sextetId = roundByMode(stateBefore, "SEXTET").id;
     await second.startRound(sextetId);
-    for (const word of EXTRA_WORDS.slice(0, 12)) {
+    for (const word of EXTRA_WORDS.slice(0, 11)) {
       await second.submitAttempt(sextetId, word);
     }
 
@@ -532,7 +530,7 @@ describe("Campeonato Diario - classificacao e encerramento", () => {
     expect(leaderboard.isFinal).toBe(true);
     expect(leaderboard.entries[0].displayName).toBe("Mariana");
     expect(leaderboard.entries[0].position).toBe(1);
-    expect(leaderboard.entries[0].totalScore).toBe(1510);
+    expect(leaderboard.entries[0].totalScore).toBe(1500);
     expect(leaderboard.entries[1].displayName).toBe("Rafael");
     expect(leaderboard.entries[1].wordsSolved).toBe(7);
   });

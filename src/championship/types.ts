@@ -72,14 +72,17 @@ export type ChampionshipBoard = {
   rows: EvaluatedLetter[][];
 };
 
+export const getRoundId = (round: any): string => round?.roundId ?? round?.id ?? "";
+
 export type ChampionshipRoundState = {
   id: string;
+  roundId?: string;
   mode: ChampionshipMode;
   roundOrder: number;
   boardCount: number;
   maxAttempts: number;
-  timeLimitSeconds: number | null;
-  unlocked: boolean;
+  timeLimitSeconds?: number | null;
+  unlocked?: boolean;
   status: ParticipantRoundStatus;
   attemptsUsed: number;
   wordsSolved: number;
@@ -88,9 +91,16 @@ export type ChampionshipRoundState = {
   bonusScore: number;
   totalScore: number;
   durationMs: number;
-  startedAt: string | null;
-  finishedAt: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
   boards: ChampionshipBoard[];
+  participation?: {
+    id?: string;
+    status?: ParticipantRoundStatus;
+    attemptsUsed?: number;
+    wordsSolved?: number;
+    boardState?: any[];
+  } | null;
 };
 
 /** Estado completo devolvido pelo servidor a cada interacao. */

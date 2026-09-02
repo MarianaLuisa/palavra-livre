@@ -64,10 +64,9 @@ export function ResultsPanel({ championshipId, currentUserParticipantId }: Resul
     );
   }
 
-  const me = results.participants.find(
-    (participant) => participant.participantId === currentUserParticipantId,
-  );
-  const champion = results.participants.find((participant) => participant.position === 1);
+  const participantsList = Array.isArray(results?.participants) ? results.participants : [];
+  const me = participantsList.find((p: any) => p?.userId === currentUserParticipantId);
+  const champion = participantsList.find((p: any) => p?.position === 1);
   const sortedParticipants = sortLeaderboardEntries(results.participants);
 
   async function handleShare() {

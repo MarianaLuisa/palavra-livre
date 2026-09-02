@@ -10,19 +10,30 @@ import type { ChampionshipBoard } from "./types";
  *
  * Tabuleiros ja resolvidos nao recebem linha e ficam de fora.
  */
-export function useRevealingBoards(boards: ChampionshipBoard[]): number[] {
+export function useRevealingBoards(boards: ChampionshipBoard[], roundId?: string): number[] {
   const previousRowCountsRef = useRef<Record<number, number>>({});
   const [revealingBoards, setRevealingBoards] = useState<number[]>([]);
+  const currentRoundIdRef = useRef<string | undefined>(roundId);
 
   useEffect(() => {
+    if (currentRoundIdRef.current !== roundId) {
+      currentRoundIdRef.current = roundId;
+      previousRowCountsRef.current = {};
+      setRevealingBoards([]);
+      return;
+    }
+
     const previousCounts = previousRowCountsRef.current;
     const nextCounts: Record<number, number> = {};
     const changedBoards: number[] = [];
 
-    for (const board of boards) {
-      nextCounts[board.boardIndex] = board.rows.length;
+    const safeBoards = Array.isArray(boards) ? boards : [];
+    for (const board of safeBoards) {
+      if (!board) continue;
+      const rowCount = Array.isArray(board.rows) ? board.rows.length : 0;
+      nextCounts[board.boardIndex] = rowCount;
 
-      if (board.rows.length > (previousCounts[board.boardIndex] ?? 0)) {
+      if (rowCount > (previousCounts[board.boardIndex] ?? 0)) {
         changedBoards.push(board.boardIndex);
       }
     }
@@ -32,7 +43,7 @@ export function useRevealingBoards(boards: ChampionshipBoard[]): number[] {
     if (changedBoards.length > 0) {
       setRevealingBoards(changedBoards);
     }
-  }, [boards]);
+  }, [boards, roundId]);
 
   return revealingBoards;
 }

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { REVEAL_TOTAL_MS } from "../utils/constants";
-import type {
-  ChampionshipRoundState,
-  ChampionshipState,
-  ParticipantRoundStatus,
+import {
+  getRoundId,
+  type ChampionshipRoundState,
+  type ChampionshipState,
+  type ParticipantRoundStatus,
 } from "./types";
 
 const CLOSED_STATUSES: ParticipantRoundStatus[] = ["COMPLETED", "FAILED", "EXPIRED"];
@@ -37,7 +38,8 @@ export function useRoundCelebration(state: ChampionshipState | null): RoundCeleb
       return;
     }
 
-    const currentStatuses = new Map(state.rounds.map((round) => [round.id, round.status]));
+    const safeRounds = Array.isArray(state.rounds) ? state.rounds : [];
+    const currentStatuses = new Map(safeRounds.map((round) => [getRoundId(round), round.status]));
     const previousStatuses = previousStatusesRef.current;
     previousStatusesRef.current = currentStatuses;
 
@@ -46,11 +48,12 @@ export function useRoundCelebration(state: ChampionshipState | null): RoundCeleb
       return;
     }
 
-    for (const round of state.rounds) {
-      const before = previousStatuses.get(round.id);
+    for (const round of safeRounds) {
+      const roundId = getRoundId(round);
+      const before = previousStatuses.get(roundId);
 
       if (before !== undefined && !isClosed(before) && isClosed(round.status)) {
-        setCelebratedRoundId(round.id);
+        setCelebratedRoundId(roundId);
         return;
       }
     }
@@ -72,7 +75,8 @@ export function useRoundCelebration(state: ChampionshipState | null): RoundCeleb
       return null;
     }
 
-    return state.rounds.find((item) => item.id === celebratedRoundId) ?? null;
+    const safeRounds = Array.isArray(state.rounds) ? state.rounds : [];
+    return safeRounds.find((item) => getRoundId(item) === celebratedRoundId) ?? null;
   }, [celebratedRoundId, state]);
 
   return {

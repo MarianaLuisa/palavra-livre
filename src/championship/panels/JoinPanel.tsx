@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { CHAMPIONSHIP_BRAND, CHAMPIONSHIP_STATUS_LABEL } from "../config";
-import { formatDateWithWeekday, formatTime } from "../format";
-import { getBrazilCurrentDate } from "../timezone";
+import { formatDate, formatTime } from "../format";
 import type { ChampionshipSummary } from "../types";
 
 type JoinPanelProps = {
@@ -27,27 +26,10 @@ export function JoinPanel({
 }: JoinPanelProps) {
   const [displayName, setDisplayName] = useState(accountUsername ?? suggestedName);
   const usesAccountName = accountUsername !== null && accountUsername.length >= 2;
-
-  const todayDate = getBrazilCurrentDate(serverNow || new Date());
-  const isToday = championship.championshipDate === todayDate;
-  const isFinished = championship.status === "FINISHED";
-  const isCancelled = championship.status === "CANCELLED";
-
-  const closeRaw =
-    championship.registrationClosesAt ||
-    (championship as any).closesAt ||
-    (championship as any).registration_closes_at;
-  const formattedCloseTime =
-    closeRaw && formatTime(closeRaw) !== "-" ? formatTime(closeRaw) : "23:59";
-
+  const serverTime = Date.parse(serverNow);
+  const registrationClosesAt = Date.parse(championship.registrationClosesAt);
   const canJoinToday =
-    !isFinished &&
-    !isCancelled &&
-    (isToday ||
-      championship.status === "IN_PROGRESS" ||
-      championship.status === "REGISTRATION_OPEN" ||
-      championship.status === "SCHEDULED");
-
+    championship.status === "IN_PROGRESS" && serverTime < registrationClosesAt;
   const trimmedName = displayName.trim();
   const nameIsValid = trimmedName.length >= 2 && trimmedName.length <= 24;
 
@@ -64,8 +46,8 @@ export function JoinPanel({
       <header className="panel-header">
         <h1 id="join-title">{CHAMPIONSHIP_BRAND.name}</h1>
         <p className="panel-subtitle">
-          Rodada diária — {formatDateWithWeekday(championship.championshipDate)} · disponível até{" "}
-          {formattedCloseTime}
+          Rodada diária de {formatDate(championship.championshipDate)} · disponível até{" "}
+          {formatTime(championship.registrationClosesAt)}
         </p>
         <span className={`status-chip status-${championship.status.toLowerCase()}`}>
           {CHAMPIONSHIP_STATUS_LABEL[championship.status] ?? championship.status}
@@ -114,18 +96,16 @@ export function JoinPanel({
             Entre 2 e 24 caracteres. Não pode repetir o nome de outro participante do mesmo dia.
           </small>
           <button className="primary-button" type="submit" disabled={!nameIsValid || busy}>
-            {busy ? "Entrando..." : "Jogar Rodada de Hoje"}
+            {busy ? "Entrando..." : "Jogar campeonato"}
           </button>
         </form>
       ) : (
         <div className="panel-notice">
-          {isFinished ? (
+          {championship.status === "FINISHED" || serverTime >= registrationClosesAt ? (
             <p>A rodada diária de hoje já foi encerrada. O resultado do dia será publicado aqui.</p>
-          ) : isToday ? (
-            <p>A rodada diária de hoje está disponível até {formattedCloseTime}.</p>
           ) : (
             <p>
-              A próxima rodada diária fica disponível em {formatDateWithWeekday(championship.startsAt || championship.championshipDate)}.
+              A próxima rodada diária fica disponível em {formatDate(championship.startsAt)}.
             </p>
           )}
           <p>Enquanto isso, o Jogo Livre continua disponível com partidas ilimitadas.</p>

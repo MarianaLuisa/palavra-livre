@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   addMinutesToIso,
   fromZonedDateTime,
-  getBrazilCurrentDate,
   getZonedToday,
   toZonedDateTime,
 } from "./timezone";
@@ -108,16 +107,16 @@ describe("getZonedToday", () => {
   });
 });
 
-describe("getBrazilCurrentDate", () => {
-  it("determina a data corrente no fuso de Brasília", () => {
-    expect(getBrazilCurrentDate("2026-09-02T02:00:00.000Z")).toBe("2026-09-01"); // 23h do dia 01/09 em SP
-    expect(getBrazilCurrentDate("2026-09-02T04:00:00.000Z")).toBe("2026-09-02"); // 01h do dia 02/09 em SP
-    expect(getBrazilCurrentDate("2026-09-02T14:41:43.000Z")).toBe("2026-09-02");
-  });
-});
-
 describe("addMinutesToIso", () => {
   it("soma minutos preservando o formato", () => {
     expect(addMinutesToIso("2026-08-06T23:00:00.000Z", 5)).toBe("2026-08-06T23:05:00.000Z");
+  });
+});
+
+describe("formatDate", () => {
+  it("formata datas puras YYYY-MM-DD sem regressão de fuso horário UTC-3", async () => {
+    const { formatDate } = await import("./format");
+    expect(formatDate("2026-09-02")).toBe("02/09/2026");
+    expect(formatDate("2026-09-01")).toBe("01/09/2026");
   });
 });

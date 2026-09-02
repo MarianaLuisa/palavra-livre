@@ -60,7 +60,7 @@ const ROUND_BLUEPRINT: Array<{
   { mode: "SIMPLE", roundOrder: 1, boardCount: 1, maxAttempts: 6 },
   { mode: "DUET", roundOrder: 2, boardCount: 2, maxAttempts: 7 },
   { mode: "QUARTET", roundOrder: 3, boardCount: 4, maxAttempts: 9 },
-  { mode: "SEXTET", roundOrder: 4, boardCount: 6, maxAttempts: 12 },
+  { mode: "SEXTET", roundOrder: 4, boardCount: 6, maxAttempts: 11 },
 ];
 
 type EngineChampionship = {
@@ -445,18 +445,7 @@ export class LocalChampionshipEngine {
   }
 
   getCurrentChampionshipId(): string | null {
-    const todayRoundId = this.ensureCurrentNorteRound();
-    if (todayRoundId) {
-      return todayRoundId;
-    }
-
-    const todayDate = getZonedToday(new Date(this.now()).toISOString(), CHAMPIONSHIP_TIMEZONE);
-    const todayChamp = [...this.championships.values()].find(
-      (champ) => champ.championshipDate === todayDate && champ.status !== "CANCELLED",
-    );
-    if (todayChamp) {
-      return todayChamp.id;
-    }
+    this.ensureCurrentNorteRound();
 
     const open = [...this.championships.values()]
       .filter((item) => item.status !== "CANCELLED")
@@ -1207,7 +1196,11 @@ export class LocalChampionshipEngine {
       throw new ChampionshipError("ROUND_NOT_STARTED");
     }
 
-    if (participation.status !== "IN_PROGRESS" && participation.status !== "NOT_STARTED") {
+    if (participation.status === "NOT_STARTED") {
+      throw new ChampionshipError("ROUND_NOT_STARTED");
+    }
+
+    if (participation.status !== "IN_PROGRESS") {
       throw new ChampionshipError("ROUND_ALREADY_FINISHED");
     }
 
@@ -1454,30 +1447,6 @@ export class LocalChampionshipEngine {
     );
     const isFinal = championship.status === "FINISHED";
 
-    if (!isFinal) {
-      return {
-        championshipId: target,
-        championshipName: championship.name,
-        championshipDate: championship.championshipDate,
-        status: championship.status,
-        isFinal: false,
-        entries: [...participants]
-          .sort((left, right) => left.registeredAt - right.registeredAt)
-          .map((participant) => ({
-            participantId: participant.id,
-            userId: participant.userId,
-            position: null,
-            displayName: participant.displayName,
-            totalScore: null,
-            wordsSolved: null,
-            completedRounds: participant.completedRounds,
-            totalAttempts: null,
-            totalDurationMs: null,
-            status: participant.status,
-          })),
-      };
-    }
-
     const ranked = rankParticipants(
       participants.map((participant) => ({
         participantId: participant.id,
@@ -1498,7 +1467,7 @@ export class LocalChampionshipEngine {
       championshipName: championship.name,
       championshipDate: championship.championshipDate,
       status: championship.status,
-      isFinal: true,
+      isFinal,
       entries: ranked.map((entry) => ({
         participantId: entry.participantId,
         userId: entry.userId,

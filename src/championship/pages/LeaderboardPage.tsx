@@ -4,10 +4,12 @@ import { CHAMPIONSHIP_BRAND, CHAMPIONSHIP_ROUTES } from "../config";
 import { getErrorMessage } from "../errors";
 import { formatDate } from "../format";
 import { getChampionshipService } from "../service";
+import { getBrazilCurrentDate } from "../timezone";
 import type { Leaderboard, LeaderboardEntry } from "../types";
 import { Link } from "../../router/router";
 
 export function LeaderboardPage() {
+  const todayDate = getBrazilCurrentDate();
   const [weeklyLeaderboard, setWeeklyLeaderboard] = useState<Leaderboard | null>(null);
   const [dailyLeaderboard, setDailyLeaderboard] = useState<Leaderboard | null>(null);
   const [activeTab, setActiveTab] = useState<"weekly" | "daily">("weekly");
@@ -25,10 +27,10 @@ export function LeaderboardPage() {
     }
 
     try {
-      const [weeklyData, dailyData, state] = await Promise.all([
+      const state = service.isAuthenticated() ? await service.getState() : null;
+      const [weeklyData, dailyData] = await Promise.all([
         service.getWeeklyLeaderboard(),
-        service.getLeaderboard(),
-        service.isAuthenticated() ? service.getState() : Promise.resolve(null),
+        service.getLeaderboard(state?.championship?.id),
       ]);
 
       const normalizeLeaderboard = (data: Leaderboard | null): Leaderboard | null => {
@@ -113,7 +115,7 @@ export function LeaderboardPage() {
           aria-pressed={activeTab === "daily"}
           onClick={() => setActiveTab("daily")}
         >
-          Rodada de Hoje ({dailyLeaderboard?.championshipDate ? formatDate(dailyLeaderboard.championshipDate) : "Hoje"})
+          Rodada de Hoje ({formatDate(todayDate)})
         </button>
       </nav>
 

@@ -49,7 +49,10 @@ export function ChampionshipBoardGrid({
           activeTileIndex={activeTileIndex}
           maxAttempts={maxAttempts}
           gameStatus={gameStatus}
-          isRevealing={isRevealing && revealingBoards.includes(board.boardIndex)}
+          isRevealing={
+            isRevealing &&
+            (revealingBoards.length === 0 ? !board.solved : revealingBoards.includes(board.boardIndex))
+          }
           invalidGuessId={invalidGuessId}
           onTileSelect={onTileSelect}
         />

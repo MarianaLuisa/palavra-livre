@@ -6,20 +6,228 @@ import {
 } from "./errors";
 import { getSupabaseClient, isChampionshipConfigured } from "./supabaseClient";
 import { CHAMPIONSHIP_TIMEZONE } from "./config";
-import { getBrazilCurrentDate, getZonedToday } from "./timezone";
-import type {
-  AdminOverview,
-  AdminPlayer,
-  AdminPlayerHistory,
-  AdminRoundAnswers,
-  ChampionshipHistoryItem,
-  ChampionshipPlayerStats,
-  ChampionshipResults,
-  ChampionshipSchedule,
-  ChampionshipState,
-  ChampionshipStatus,
-  Leaderboard,
+import { getZonedToday } from "./timezone";
+import type { EvaluatedLetter, LetterStatus } from "../types/game";
+import {
+  getRoundId,
+  type AdminOverview,
+  type AdminPlayer,
+  type AdminPlayerHistory,
+  type AdminRoundAnswers,
+  type ChampionshipBoard,
+  type ChampionshipHistoryItem,
+  type ChampionshipPlayerStats,
+  type ChampionshipResults,
+  type ChampionshipSchedule,
+  type ChampionshipState,
+  type ChampionshipStatus,
+  type Leaderboard,
 } from "./types";
+
+type RpcRecord = Record<string, unknown>;
+
+function record(value: unknown): RpcRecord {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as RpcRecord)
+    : {};
+}
+
+function firstDefined<T>(...values: T[]): T | undefined {
+  return values.find((value) => value !== undefined && value !== null);
+}
+
+function normalizeLetter(letterValue: unknown): EvaluatedLetter {
+  const item = record(letterValue);
+  const letter = String(firstDefined(item.letter, item.char, item.letter_char, "") ?? "").toLowerCase();
+  const statusRaw = String(firstDefined(item.status, item.letter_status, "empty") ?? "empty").toLowerCase();
+  const status: LetterStatus =
+    statusRaw === "correct" || statusRaw === "present" || statusRaw === "absent"
+      ? statusRaw
+      : "empty";
+
+  return { letter, status };
+}
+
+function normalizeRow(rowValue: unknown): EvaluatedLetter[] {
+  if (!Array.isArray(rowValue)) {
+    return [];
+  }
+  return rowValue.map(normalizeLetter);
+}
+
+/**
+ * Ensures no duplicate guesses appear on the same board.
+ * In championship mode, each round accepts unique words only.
+ */
+export function deduplicateBoardRows(rows: EvaluatedLetter[][]): EvaluatedLetter[][] {
+  const seen = new Set<string>();
+  const unique: EvaluatedLetter[][] = [];
+
+  for (const row of rows) {
+    if (!Array.isArray(row) || row.length === 0) continue;
+    const word = row.map((item) => item.letter).join("").toLowerCase();
+    if (!seen.has(word)) {
+      seen.add(word);
+      unique.push(row);
+    }
+  }
+
+  return unique;
+}
+
+/** Converts both the current RPC shape and the legacy snake_case shape. */
+function normalizeBoard(value: unknown, fallbackIndex: number): ChampionshipBoard {
+  const board = record(value);
+  const rawRows = firstDefined(board.rows, board.boardRows, board.board_rows, board.evaluations);
+  const rows = deduplicateBoardRows(Array.isArray(rawRows) ? rawRows.map(normalizeRow) : []);
+
+  return {
+    boardIndex: Number(firstDefined(board.boardIndex, board.board_index, fallbackIndex)),
+    solved: Boolean(firstDefined(board.solved, board.isSolved, board.is_solved, false)),
+    answer: (firstDefined(board.answer, board.word, null) as string | null) ?? null,
+    rows,
+  };
+}
+
+export function normalizeChampionshipState(raw: unknown): ChampionshipState {
+  const payload = record(raw);
+  const rounds = Array.isArray(payload.rounds) ? payload.rounds : [];
+
+  return {
+    ...payload,
+    rounds: rounds.map((value) => {
+      const round = record(value);
+      const participation = record(firstDefined(round.participation, round.participantRound, round.participant_round));
+      const boardCount = Number(firstDefined(round.boardCount, round.board_count, 1));
+      const rawBoards = firstDefined(
+        round.boards,
+        round.boardState,
+        round.board_state,
+        participation.boards,
+        participation.boardState,
+        participation.board_state,
+      );
+      const boards = Array.isArray(rawBoards)
+        ? rawBoards.map((board, index) => normalizeBoard(board, index))
+        : Array.from({ length: boardCount }, (_, index) => normalizeBoard({}, index));
+
+      return {
+        ...round,
+        id: firstDefined(round.roundId, round.round_id, round.id, "") as string,
+        roundId: firstDefined(round.roundId, round.round_id, round.id) as string | undefined,
+        boardCount,
+        maxAttempts: Number(firstDefined(round.maxAttempts, round.max_attempts, 0)),
+        status: firstDefined(participation.status, round.status, "NOT_STARTED"),
+        attemptsUsed: Number(firstDefined(participation.attemptsUsed, participation.attempts_used, round.attemptsUsed, round.attempts_used, 0)),
+        wordsSolved: Number(firstDefined(participation.wordsSolved, participation.words_solved, round.wordsSolved, round.words_solved, 0)),
+        allWordsSolved: Boolean(firstDefined(participation.allWordsSolved, participation.all_words_solved, round.allWordsSolved, round.all_words_solved, false)),
+        baseScore: Number(firstDefined(participation.baseScore, participation.base_score, round.baseScore, round.base_score, 0)),
+        bonusScore: Number(firstDefined(participation.bonusScore, participation.bonus_score, round.bonusScore, round.bonus_score, 0)),
+        totalScore: Number(firstDefined(participation.totalScore, participation.total_score, round.totalScore, round.total_score, 0)),
+        durationMs: Number(firstDefined(participation.durationMs, participation.duration_ms, round.durationMs, round.duration_ms, 0)),
+        boards,
+      };
+    }),
+  } as ChampionshipState;
+}
+
+/**
+ * Rows are append-only. Retain rendered rows if the server temporarily returns
+ * an empty response (e.g. during a transient reload or network glitch).
+ */
+export function preserveVisibleBoardRows(
+  previous: ChampionshipState | null,
+  next: ChampionshipState,
+): ChampionshipState {
+  if (previous === null || previous.championship?.id !== next.championship?.id) {
+    return next;
+  }
+
+  const previousState = previous;
+  const previousRounds = new Map(previousState.rounds.map((round) => [getRoundId(round), round]));
+  const rounds = next.rounds.map((nextRound) => {
+    const previousRound = previousRounds.get(getRoundId(nextRound));
+    if (previousRound === undefined) {
+      return nextRound;
+    }
+
+    const previousBoards = new Map(previousRound.boards.map((board) => [board.boardIndex, board]));
+    const boards: ChampionshipBoard[] = nextRound.boards.map((nextBoard) => {
+      const previousBoard = previousBoards.get(nextBoard.boardIndex);
+      if (previousBoard === undefined) {
+        return nextBoard;
+      }
+      if (nextBoard.rows.length === 0 && previousBoard.rows.length > 0) {
+        return {
+          ...nextBoard,
+          rows: previousBoard.rows,
+          solved: previousBoard.solved || nextBoard.solved,
+          answer: nextBoard.answer ?? previousBoard.answer,
+        };
+      }
+      return {
+        ...nextBoard,
+        solved: nextBoard.solved || previousBoard.solved,
+        answer: nextBoard.answer ?? previousBoard.answer,
+      };
+    });
+
+    for (const previousBoard of previousRound.boards) {
+      if (!boards.some((board) => board.boardIndex === previousBoard.boardIndex)) {
+        boards.push(previousBoard);
+      }
+    }
+    boards.sort((left, right) => left.boardIndex - right.boardIndex);
+
+    return {
+      ...nextRound,
+      boardCount: Math.max(nextRound.boardCount, previousRound.boardCount),
+      maxAttempts: nextRound.maxAttempts || previousRound.maxAttempts,
+      boards,
+    };
+  });
+
+  return { ...next, rounds };
+}
+
+function mergeRoundBoards(state: ChampionshipState, roundId: string, rawBoards: unknown): ChampionshipState {
+  if (!Array.isArray(rawBoards)) {
+    return state;
+  }
+
+  return {
+    ...state,
+    rounds: state.rounds.map((round) => {
+      if (getRoundId(round) !== roundId && round.id !== roundId && round.roundId !== roundId) {
+        return round;
+      }
+
+      const incomingBoards = rawBoards.map((board, index) => normalizeBoard(board, index));
+      const existingBoardsMap = new Map((round.boards ?? []).map((b) => [b.boardIndex, b]));
+      const mergedBoards = incomingBoards.map((inc) => {
+        const prev = existingBoardsMap.get(inc.boardIndex);
+        if (prev && inc.rows.length === 0 && prev.rows.length > 0) {
+          return {
+            ...inc,
+            rows: prev.rows,
+            solved: inc.solved || prev.solved,
+            answer: inc.answer ?? prev.answer,
+          };
+        }
+        return {
+          ...inc,
+          solved: inc.solved || (prev?.solved ?? false),
+          answer: inc.answer ?? prev?.answer ?? null,
+        };
+      });
+
+      return {
+        ...round,
+        boards: mergedBoards,
+      };
+    }),
+  };
+}
 
 export type CreateChampionshipInput = {
   championshipDate?: string;
@@ -152,40 +360,41 @@ export class SupabaseChampionshipService implements ChampionshipService {
   }
 
   async getState(championshipId?: string): Promise<ChampionshipState> {
-    const client = requireClient();
-
-    if (!championshipId) {
-      try {
-        const todayIso = getBrazilCurrentDate();
-        await client.rpc("ensure_current_norte_round", {
-          p_reference_date: todayIso,
-        });
-      } catch {
-        // Fallback gracioso: o banco de dados também autogarante a rodada em cd_get_state
-      }
-    }
-
-    return client.rpc<ChampionshipState>("cd_get_state", {
+    const raw = await requireClient().rpc<unknown>("cd_get_state", {
       p_championship_id: championshipId ?? null,
     });
+    const state = normalizeChampionshipState(raw);
+
+    if (state.championship === null || state.championship === undefined) {
+      throw new ChampionshipError("CHAMPIONSHIP_NOT_FOUND");
+    }
+
+    // The dedicated RPC reads the append-only attempt log. It protects the
+    // board UI while older cd_build_state versions are still cached remotely.
+    const hydrated = await Promise.all(
+      state.rounds.map(async (round) => {
+        try {
+          const boardState = await requireClient().rpc<unknown>("cd_my_round_boards", {
+            p_round_id: round.id,
+          });
+          return { roundId: round.id, boards: record(boardState).boards };
+        } catch {
+          // The main state is still usable before the additive migration lands.
+          return null;
+        }
+      }),
+    );
+
+    return hydrated.reduce(
+      (nextState, item) =>
+        item === null ? nextState : mergeRoundBoards(nextState, item.roundId, item.boards),
+      state,
+    );
   }
 
   async register(displayName: string, championshipId?: string): Promise<ChampionshipState> {
     await this.signIn(displayName);
-    const client = requireClient();
-
-    if (!championshipId) {
-      try {
-        const todayIso = getBrazilCurrentDate();
-        await client.rpc("ensure_current_norte_round", {
-          p_reference_date: todayIso,
-        });
-      } catch {
-        // Fallback gracioso
-      }
-    }
-
-    return client.rpc<ChampionshipState>("cd_register", {
+    return requireClient().rpc<ChampionshipState>("cd_register", {
       p_display_name: displayName,
       p_championship_id: championshipId ?? null,
     });
@@ -203,15 +412,29 @@ export class SupabaseChampionshipService implements ChampionshipService {
     });
   }
 
-  startRound(roundId: string): Promise<ChampionshipState> {
-    return requireClient().rpc<ChampionshipState>("cd_start_round", { p_round_id: roundId });
+  async startRound(roundId: string): Promise<ChampionshipState> {
+    const state = await requireClient().rpc<ChampionshipState>("cd_start_round", { p_round_id: roundId });
+    return this.getState(state?.championship?.id);
   }
 
-  submitAttempt(roundId: string, word: string): Promise<ChampionshipState> {
-    return requireClient().rpc<ChampionshipState>("cd_submit_attempt", {
+  async submitAttempt(roundId: string, word: string): Promise<ChampionshipState> {
+    const cleanWord = word.trim();
+    // The PostgreSQL function accepts exactly p_round_id and p_word.
+    // Sending p_guess too makes PostgREST fail function resolution.
+    const rpcState = await requireClient().rpc<unknown>("cd_submit_attempt", {
       p_round_id: roundId,
-      p_word: word,
+      p_word: cleanWord,
     });
+
+    const attemptState = normalizeChampionshipState(rpcState);
+
+    // Refresh state and hydrate board state from append-only attempt logs
+    try {
+      const refreshed = await this.getState(attemptState?.championship?.id);
+      return preserveVisibleBoardRows(attemptState, refreshed);
+    } catch {
+      return attemptState;
+    }
   }
 
   getLeaderboard(championshipId?: string): Promise<Leaderboard> {

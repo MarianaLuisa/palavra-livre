@@ -31,7 +31,7 @@ export function Podium({ places, highlightName = null }: PodiumProps) {
 
   // Ordem visual classica: 2, 1, 3.
   const displayOrder = [2, 1, 3]
-    .map((position) => places.find((place) => place.position === position))
+    .map((position) => (places ?? []).find((place: any) => place?.position === position))
     .filter((place): place is PodiumPlace => place !== undefined);
 
   return (

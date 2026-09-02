@@ -4,8 +4,12 @@ import {
   LOBBY_POLL_INTERVAL_MS,
 } from "./config";
 import { getErrorMessage } from "./errors";
-import { getChampionshipService } from "./service";
-import type { ChampionshipRoundState, ChampionshipState } from "./types";
+import { getChampionshipService, preserveVisibleBoardRows } from "./service";
+import {
+  getRoundId,
+  type ChampionshipRoundState,
+  type ChampionshipState,
+} from "./types";
 
 type UseChampionshipResult = {
   state: ChampionshipState | null;
@@ -47,7 +51,7 @@ export function useChampionship(): UseChampionshipResult {
 
   const applyState = useCallback((nextState: ChampionshipState) => {
     if (mountedRef.current) {
-      setState(nextState);
+      setState((previousState) => preserveVisibleBoardRows(previousState, nextState));
       setError(null);
     }
   }, []);
@@ -139,7 +143,13 @@ export function useChampionship(): UseChampionshipResult {
   const abandon = useCallback(() => run(() => service.abandon()), [run, service]);
 
   const startRound = useCallback(
-    (roundId: string) => run(() => service.startRound(roundId)),
+    (roundId: string) => {
+      if (!roundId) {
+        setError("Modalidade inválida.");
+        return Promise.resolve(false);
+      }
+      return run(() => service.startRound(roundId));
+    },
     [run, service],
   );
 
@@ -149,11 +159,12 @@ export function useChampionship(): UseChampionshipResult {
   );
 
   const currentRound = useMemo(() => {
-    if (state === null || state.currentRoundId === null) {
+    if (state === null || !state.currentRoundId) {
       return null;
     }
 
-    return state.rounds.find((round) => round.id === state.currentRoundId) ?? null;
+    const safeRounds = Array.isArray(state?.rounds) ? state.rounds : [];
+    return (safeRounds ?? []).find((round) => getRoundId(round) === state?.currentRoundId) ?? safeRounds[0] ?? null;
   }, [state]);
 
   return {

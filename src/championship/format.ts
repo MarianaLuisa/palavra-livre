@@ -38,14 +38,20 @@ function parse(value: string | null | undefined): Date | null {
 }
 
 export function formatDate(value: string | null | undefined): string {
-  const parsed = parse(value);
+  if (value === null || value === undefined) {
+    return "-";
+  }
 
+  // Datas puras (YYYY-MM-DD) chegam sem fuso.
+  // Devem ser tratadas antes de parse(), pois new Date("YYYY-MM-DD") é interpretado
+  // como UTC 00:00:00 e no fuso de Brasília (UTC-3) volta 3 horas, caindo no dia anterior!
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+  }
+
+  const parsed = parse(value);
   if (parsed === null) {
-    // Datas puras (YYYY-MM-DD) chegam sem fuso.
-    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      const [year, month, day] = value.split("-");
-      return `${day}/${month}/${year}`;
-    }
     return "-";
   }
 

@@ -1,6 +1,6 @@
 import { Countdown } from "../components/Countdown";
 import { CHAMPIONSHIP_BRAND, CHAMPIONSHIP_STATUS_LABEL, PARTICIPATION_STATUS_LABEL } from "../config";
-import { formatDateWithWeekday, formatTime } from "../format";
+import { formatDate, formatTime } from "../format";
 import type { ChampionshipSummary, ParticipantSummary } from "../types";
 import { useCountdown } from "../useChampionship";
 
@@ -25,19 +25,12 @@ export function LobbyPanel({
   const canCancel =
     championship.status === "REGISTRATION_OPEN" || championship.status === "WAITING";
 
-  const closeRaw =
-    championship.registrationClosesAt ||
-    (championship as any).closesAt ||
-    (championship as any).registration_closes_at;
-  const formattedCloseTime =
-    closeRaw && formatTime(closeRaw) !== "-" ? formatTime(closeRaw) : "23:59";
-
   return (
     <section className="championship-panel" aria-labelledby="lobby-title">
       <header className="panel-header">
         <h1 id="lobby-title">Sala de espera</h1>
         <p className="panel-subtitle">
-          {CHAMPIONSHIP_BRAND.name} · {formatDateWithWeekday(championship.championshipDate)}
+          {CHAMPIONSHIP_BRAND.name} · {formatDate(championship.championshipDate)}
         </p>
         <span className={`status-chip status-${championship.status.toLowerCase()}`}>
           {CHAMPIONSHIP_STATUS_LABEL[championship.status] ?? championship.status}
@@ -65,7 +58,7 @@ export function LobbyPanel({
         </div>
         <div>
           <dt>Inscrições fecham</dt>
-          <dd>{formattedCloseTime}</dd>
+          <dd>{formatTime(championship.registrationClosesAt)}</dd>
         </div>
       </dl>
 

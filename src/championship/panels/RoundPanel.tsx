@@ -6,7 +6,7 @@ import { repairMojibake } from "../../utils/repairMojibake";
 import { ChampionshipBoardGrid, toBoardState } from "../components/ChampionshipBoardGrid";
 import { RoundProgress } from "../components/RoundProgress";
 import { CHAMPIONSHIP_MODE_LABEL } from "../config";
-import type { ChampionshipRoundState } from "../types";
+import { getRoundId, type ChampionshipRoundState } from "../types";
 import { useRevealingBoards } from "../useRevealingBoards";
 import { useRoundInput } from "../useRoundInput";
 
@@ -41,20 +41,48 @@ export function RoundPanel({
   onStartRound,
   onSubmitAttempt,
 }: RoundPanelProps) {
-  const started = round.status === "IN_PROGRESS" || reviewMode;
+  const safeRound = round ?? {
+    id: "",
+    roundOrder: 1,
+    mode: "SIMPLE",
+    status: "NOT_STARTED",
+    boardCount: 1,
+    maxAttempts: 6,
+    attemptsUsed: 0,
+    wordsSolved: 0,
+    allWordsSolved: false,
+    bonusScore: 0,
+    totalScore: 0,
+    durationMs: 0,
+    boards: [],
+  };
+
+  const roundId = getRoundId(safeRound);
+  const safeRounds = Array.isArray(rounds) ? rounds : [safeRound];
+  const safeBoards =
+    Array.isArray(safeRound.boards) && safeRound.boards.length > 0
+      ? safeRound.boards
+      : Array.from({ length: safeRound.boardCount ?? 1 }, (_, index) => ({
+          boardIndex: index,
+          solved: false,
+          answer: null,
+          rows: [],
+        }));
+
+  const started = safeRound.status === "IN_PROGRESS" || reviewMode;
 
   const input = useRoundInput({
-    roundId: round.id,
+    roundId,
     enabled: started && !busy && !reviewMode,
-    onSubmit: (word) => onSubmitAttempt(round.id, word),
+    onSubmit: (word) => onSubmitAttempt(roundId, word),
   });
 
-  const revealingBoards = useRevealingBoards(round.boards);
+  const revealingBoards = useRevealingBoards(safeBoards, roundId);
 
   // O teclado so incorpora a linha nova depois da animacao terminar,
   // igual ao Jogo Livre.
   const keyboardStatuses = useMemo(() => {
-    const boardsForKeyboard = round.boards.map((board) => {
+    const boardsForKeyboard = safeBoards.map((board) => {
       const boardState = toBoardState(board);
 
       if (!input.isRevealing || !revealingBoards.includes(board.boardIndex)) {
@@ -65,7 +93,7 @@ export function RoundPanel({
     });
 
     return getKeyboardStatus(boardsForKeyboard);
-  }, [input.isRevealing, revealingBoards, round.boards]);
+  }, [input.isRevealing, revealingBoards, safeBoards]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -92,7 +120,7 @@ export function RoundPanel({
 
   // Em revisao o tabuleiro fica congelado: sem linha de digitacao.
   const gameStatus: GameStatus = reviewMode
-    ? round.allWordsSolved
+    ? safeRound.allWordsSolved
       ? "won"
       : "lost"
     : started
@@ -101,33 +129,35 @@ export function RoundPanel({
   const message = input.message.length > 0 ? input.message : (serverError ?? "");
 
   if (!started) {
+    const previousBoards = Array.isArray(previousRound?.boards) ? previousRound.boards : [];
+
     return (
       <section className="championship-panel" aria-labelledby="round-start-title">
         <header className="panel-header">
           <h1 id="round-start-title">
-            Modalidade {round.roundOrder} de {rounds.length}
+            Modalidade {safeRound.roundOrder} de {safeRounds.length}
           </h1>
-          <p className="panel-subtitle">{CHAMPIONSHIP_MODE_LABEL[round.mode]}</p>
+          <p className="panel-subtitle">{CHAMPIONSHIP_MODE_LABEL[safeRound.mode] ?? safeRound.mode}</p>
         </header>
 
-        <RoundProgress rounds={rounds} currentRoundId={round.id} />
+        <RoundProgress rounds={safeRounds} currentRoundId={safeRound.id} />
 
         {previousRound !== null ? (
           <div className="transition-summary" aria-label="Resultado da modalidade anterior">
-            <h2>{CHAMPIONSHIP_MODE_LABEL[previousRound.mode]} concluido</h2>
+            <h2>{CHAMPIONSHIP_MODE_LABEL[previousRound.mode] ?? previousRound.mode} concluido</h2>
             <p>
-              {previousRound.wordsSolved}/{previousRound.boardCount} palavras ·{" "}
-              {previousRound.attemptsUsed}/{previousRound.maxAttempts} tentativas ·{" "}
-              {previousRound.totalScore} pontos
-              {previousRound.bonusScore > 0
+              {previousRound.wordsSolved ?? 0}/{previousRound.boardCount ?? 1} palavras ·{" "}
+              {previousRound.attemptsUsed ?? 0}/{previousRound.maxAttempts ?? 6} tentativas ·{" "}
+              {previousRound.totalScore ?? 0} pontos
+              {previousRound.bonusScore && previousRound.bonusScore > 0
                 ? ` (inclui ${previousRound.bonusScore} de bonus)`
                 : ""}
             </p>
-            {previousRound.boards.some((board) => board.answer !== null) ? (
+            {previousBoards.some((board) => board?.answer !== null) ? (
               <p className="transition-answers">
                 Respostas:{" "}
-                {previousRound.boards
-                  .map((board) => (board.answer === null ? "?" : repairMojibake(board.answer)))
+                {previousBoards
+                  .map((board) => (board?.answer === null ? "?" : repairMojibake(board?.answer ?? "")))
                   .join(", ")}
               </p>
             ) : null}
@@ -137,15 +167,15 @@ export function RoundPanel({
         <dl className="panel-grid">
           <div>
             <dt>Palavras</dt>
-            <dd>{round.boardCount}</dd>
+            <dd>{safeRound.boardCount ?? 1}</dd>
           </div>
           <div>
             <dt>Tentativas</dt>
-            <dd>{round.maxAttempts}</dd>
+            <dd>{safeRound.maxAttempts ?? 6}</dd>
           </div>
           <div>
             <dt>Pontos possiveis</dt>
-            <dd>{round.boardCount * 100} + bonus</dd>
+            <dd>{(safeRound.boardCount ?? 1) * 100} + bonus</dd>
           </div>
         </dl>
 
@@ -156,10 +186,10 @@ export function RoundPanel({
         <button
           className="primary-button"
           type="button"
-          onClick={() => onStartRound(round.id)}
+          onClick={() => onStartRound(roundId)}
           disabled={busy}
         >
-          {busy ? "Abrindo..." : `Iniciar ${CHAMPIONSHIP_MODE_LABEL[round.mode]}`}
+          {busy ? "Abrindo..." : `Iniciar ${CHAMPIONSHIP_MODE_LABEL[safeRound.mode] ?? safeRound.mode}`}
         </button>
         {serverError !== null ? (
           <p className="panel-error" role="alert">
@@ -172,7 +202,7 @@ export function RoundPanel({
 
   return (
     <>
-      <h1 className="visually-hidden">{CHAMPIONSHIP_MODE_LABEL[round.mode]}</h1>
+      <h1 className="visually-hidden">{CHAMPIONSHIP_MODE_LABEL[safeRound.mode] ?? safeRound.mode}</h1>
 
       <div
         className={message.length > 0 ? "message visible" : "message"}
@@ -184,10 +214,10 @@ export function RoundPanel({
       </div>
 
       <ChampionshipBoardGrid
-        boards={round.boards}
+        boards={safeBoards}
         currentGuessLetters={input.letters}
         activeTileIndex={input.activeTileIndex}
-        maxAttempts={round.maxAttempts}
+        maxAttempts={safeRound.maxAttempts ?? 6}
         gameStatus={gameStatus}
         isRevealing={input.isRevealing}
         invalidGuessId={input.invalidGuessId}
