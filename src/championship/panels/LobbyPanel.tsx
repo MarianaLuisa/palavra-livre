@@ -25,6 +25,13 @@ export function LobbyPanel({
   const canCancel =
     championship.status === "REGISTRATION_OPEN" || championship.status === "WAITING";
 
+  const closeRaw =
+    championship.registrationClosesAt ||
+    (championship as any).closesAt ||
+    (championship as any).registration_closes_at;
+  const formattedCloseTime =
+    closeRaw && formatTime(closeRaw) !== "-" ? formatTime(closeRaw) : "23:59";
+
   return (
     <section className="championship-panel" aria-labelledby="lobby-title">
       <header className="panel-header">
@@ -58,7 +65,7 @@ export function LobbyPanel({
         </div>
         <div>
           <dt>Inscrições fecham</dt>
-          <dd>{formatTime(championship.registrationClosesAt)}</dd>
+          <dd>{formattedCloseTime}</dd>
         </div>
       </dl>
 
