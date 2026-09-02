@@ -159,6 +159,19 @@ export function getZonedToday(
   return toZonedDateTime(serverNowIso, timeZone)?.date ?? "";
 }
 
+/** Data de hoje (AAAA-MM-DD) no fuso America/Sao_Paulo (horário oficial do jogo). */
+export function getBrazilCurrentDate(reference?: Date | string | number): string {
+  const instant =
+    reference === undefined
+      ? new Date()
+      : typeof reference === "string" || typeof reference === "number"
+        ? new Date(reference)
+        : reference;
+  return getZonedToday(instant.toISOString(), CHAMPIONSHIP_TIMEZONE);
+}
+
+export const brazilCurrentDate = getBrazilCurrentDate;
+
 /** Soma minutos a um instante e devolve o resultado em ISO. */
 export function addMinutesToIso(isoInstant: string, minutes: number): string {
   return new Date(new Date(isoInstant).getTime() + minutes * 60_000).toISOString();

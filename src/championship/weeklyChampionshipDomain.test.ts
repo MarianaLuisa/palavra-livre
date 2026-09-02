@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { formatDateWithWeekday } from "./format";
 import {
   getBrazilWeekEnd,
   getBrazilWeekStart,
@@ -49,5 +50,10 @@ describe("weeklyChampionshipDomain", () => {
     expect(current).toBe("2026-09-07");
     expect(previous).toBe("2026-08-31");
     expect(current).not.toBe(previous);
+  });
+
+  it("formata a data com o dia da semana por extenso para a interface", () => {
+    expect(formatDateWithWeekday("2026-09-02")).toBe("Quarta-feira (02/09/2026)");
+    expect(formatDateWithWeekday("2026-08-31")).toBe("Segunda-feira (31/08/2026)");
   });
 });

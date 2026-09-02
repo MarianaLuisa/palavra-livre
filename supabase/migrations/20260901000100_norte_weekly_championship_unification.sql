@@ -190,7 +190,7 @@ begin
   select id into daily_champ_id
   from championships
   where championship_date = ref_date
-    and is_official
+    and (is_official or weekly_championship_id is not null or name = 'Campeonato Norte')
     and status <> 'CANCELLED';
 
   if daily_champ_id is null then
@@ -225,7 +225,7 @@ begin
         select id into daily_champ_id
         from championships
         where championship_date = ref_date
-          and is_official
+          and (is_official or weekly_championship_id is not null or name = 'Campeonato Norte')
           and status <> 'CANCELLED';
     end;
 
@@ -296,8 +296,24 @@ begin
 
   -- Se for dia util (segunda a sexta), garante a rodada automaticamente
   if today_weekday between 1 and 5 then
-    auto_res := ensure_current_norte_round(today_date);
-    target := (auto_res->>'dailyChampionshipId')::uuid;
+    begin
+      auto_res := ensure_current_norte_round(today_date);
+      target := (auto_res->>'dailyChampionshipId')::uuid;
+      if target is not null then
+        return target;
+      end if;
+    exception when others then
+      null;
+    end;
+
+    -- Busca direta caso ja exista para a data de hoje
+    select id into target
+    from championships
+    where championship_date = today_date
+      and (is_official or weekly_championship_id is not null or name = 'Campeonato Norte')
+      and status <> 'CANCELLED'
+    limit 1;
+
     if target is not null then
       return target;
     end if;
@@ -306,7 +322,8 @@ begin
   -- Fallback para fim de semana ou campeonato mais relevante
   select id into target
   from championships
-  where is_official and status <> 'CANCELLED'
+  where (is_official or weekly_championship_id is not null or name = 'Campeonato Norte')
+    and status <> 'CANCELLED'
   order by
     case
       when championship_date = today_date then 0
@@ -319,6 +336,31 @@ begin
   limit 1;
 
   return target;
+end;
+$$;
+
+-- ---------------------------------------------------------------------
+-- 4.1. Estado do jogador com auto-garantia no carregamento inicial
+-- ---------------------------------------------------------------------
+create or replace function cd_get_state(p_championship_id uuid default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  today_date date := brazil_current_date();
+  today_weekday integer := extract(isodow from today_date)::int;
+  target uuid := p_championship_id;
+begin
+  if target is null then
+    if today_weekday between 1 and 5 then
+      perform ensure_current_norte_round(today_date);
+    end if;
+    target := cd_current_championship_id();
+  end if;
+
+  return cd_build_state(target, auth.uid());
 end;
 $$;
 
@@ -905,6 +947,7 @@ $$;
 -- ---------------------------------------------------------------------
 grant execute on function public.ensure_current_norte_round(date) to authenticated, anon;
 grant execute on function public.cd_current_championship_id() to authenticated, anon;
+grant execute on function public.cd_get_state(uuid) to authenticated, anon;
 grant execute on function public.cd_weekly_leaderboard(date) to authenticated, anon;
 grant execute on function public.pl_get_my_championship_history(integer, integer) to authenticated;
 grant execute on function public.cd_championship_results(uuid) to authenticated, anon;

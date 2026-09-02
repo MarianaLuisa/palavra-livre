@@ -445,7 +445,18 @@ export class LocalChampionshipEngine {
   }
 
   getCurrentChampionshipId(): string | null {
-    this.ensureCurrentNorteRound();
+    const todayRoundId = this.ensureCurrentNorteRound();
+    if (todayRoundId) {
+      return todayRoundId;
+    }
+
+    const todayDate = getZonedToday(new Date(this.now()).toISOString(), CHAMPIONSHIP_TIMEZONE);
+    const todayChamp = [...this.championships.values()].find(
+      (champ) => champ.championshipDate === todayDate && champ.status !== "CANCELLED",
+    );
+    if (todayChamp) {
+      return todayChamp.id;
+    }
 
     const open = [...this.championships.values()]
       .filter((item) => item.status !== "CANCELLED")

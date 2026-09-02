@@ -6,7 +6,7 @@ import {
 } from "./errors";
 import { getSupabaseClient, isChampionshipConfigured } from "./supabaseClient";
 import { CHAMPIONSHIP_TIMEZONE } from "./config";
-import { getZonedToday } from "./timezone";
+import { getBrazilCurrentDate, getZonedToday } from "./timezone";
 import type {
   AdminOverview,
   AdminPlayer,
@@ -151,15 +151,41 @@ export class SupabaseChampionshipService implements ChampionshipService {
     getSupabaseClient()?.signOut();
   }
 
-  getState(championshipId?: string): Promise<ChampionshipState> {
-    return requireClient().rpc<ChampionshipState>("cd_get_state", {
+  async getState(championshipId?: string): Promise<ChampionshipState> {
+    const client = requireClient();
+
+    if (!championshipId) {
+      try {
+        const todayIso = getBrazilCurrentDate();
+        await client.rpc("ensure_current_norte_round", {
+          p_reference_date: todayIso,
+        });
+      } catch {
+        // Fallback gracioso: o banco de dados também autogarante a rodada em cd_get_state
+      }
+    }
+
+    return client.rpc<ChampionshipState>("cd_get_state", {
       p_championship_id: championshipId ?? null,
     });
   }
 
   async register(displayName: string, championshipId?: string): Promise<ChampionshipState> {
     await this.signIn(displayName);
-    return requireClient().rpc<ChampionshipState>("cd_register", {
+    const client = requireClient();
+
+    if (!championshipId) {
+      try {
+        const todayIso = getBrazilCurrentDate();
+        await client.rpc("ensure_current_norte_round", {
+          p_reference_date: todayIso,
+        });
+      } catch {
+        // Fallback gracioso
+      }
+    }
+
+    return client.rpc<ChampionshipState>("cd_register", {
       p_display_name: displayName,
       p_championship_id: championshipId ?? null,
     });

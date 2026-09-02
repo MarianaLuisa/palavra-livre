@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addMinutesToIso,
   fromZonedDateTime,
+  getBrazilCurrentDate,
   getZonedToday,
   toZonedDateTime,
 } from "./timezone";
@@ -104,6 +105,14 @@ describe("getZonedToday", () => {
     // 02:00 UTC do dia 7 ainda e dia 6 em Sao Paulo.
     expect(getZonedToday("2026-08-07T02:00:00.000Z", SAO_PAULO)).toBe("2026-08-06");
     expect(getZonedToday("2026-08-07T04:00:00.000Z", SAO_PAULO)).toBe("2026-08-07");
+  });
+});
+
+describe("getBrazilCurrentDate", () => {
+  it("determina a data corrente no fuso de Brasília", () => {
+    expect(getBrazilCurrentDate("2026-09-02T02:00:00.000Z")).toBe("2026-09-01"); // 23h do dia 01/09 em SP
+    expect(getBrazilCurrentDate("2026-09-02T04:00:00.000Z")).toBe("2026-09-02"); // 01h do dia 02/09 em SP
+    expect(getBrazilCurrentDate("2026-09-02T14:41:43.000Z")).toBe("2026-09-02");
   });
 });
 

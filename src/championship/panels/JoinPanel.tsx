@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { CHAMPIONSHIP_BRAND, CHAMPIONSHIP_STATUS_LABEL } from "../config";
-import { formatDate, formatTime } from "../format";
+import { formatDate, formatDateWithWeekday, formatTime } from "../format";
 import type { ChampionshipSummary } from "../types";
 
 type JoinPanelProps = {
@@ -46,7 +46,7 @@ export function JoinPanel({
       <header className="panel-header">
         <h1 id="join-title">{CHAMPIONSHIP_BRAND.name}</h1>
         <p className="panel-subtitle">
-          Rodada diária de {formatDate(championship.championshipDate)} · disponível até{" "}
+          Rodada diária — {formatDateWithWeekday(championship.championshipDate)} · disponível até{" "}
           {formatTime(championship.registrationClosesAt)}
         </p>
         <span className={`status-chip status-${championship.status.toLowerCase()}`}>

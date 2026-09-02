@@ -1,6 +1,6 @@
 import { Countdown } from "../components/Countdown";
 import { CHAMPIONSHIP_BRAND, CHAMPIONSHIP_STATUS_LABEL, PARTICIPATION_STATUS_LABEL } from "../config";
-import { formatDate, formatTime } from "../format";
+import { formatDateWithWeekday, formatTime } from "../format";
 import type { ChampionshipSummary, ParticipantSummary } from "../types";
 import { useCountdown } from "../useChampionship";
 
@@ -30,7 +30,7 @@ export function LobbyPanel({
       <header className="panel-header">
         <h1 id="lobby-title">Sala de espera</h1>
         <p className="panel-subtitle">
-          {CHAMPIONSHIP_BRAND.name} · {formatDate(championship.championshipDate)}
+          {CHAMPIONSHIP_BRAND.name} · {formatDateWithWeekday(championship.championshipDate)}
         </p>
         <span className={`status-chip status-${championship.status.toLowerCase()}`}>
           {CHAMPIONSHIP_STATUS_LABEL[championship.status] ?? championship.status}

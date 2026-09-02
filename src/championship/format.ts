@@ -52,6 +52,34 @@ export function formatDate(value: string | null | undefined): string {
   return dateFormatter.format(parsed);
 }
 
+export function formatDateWithWeekday(value: string | null | undefined): string {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+
+  let year: number;
+  let month: number;
+  let day: number;
+
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    [year, month, day] = value.split("-").map(Number);
+  } else {
+    const parsed = parse(value);
+    if (parsed === null) return "-";
+    const dateFormatted = dateFormatter.format(parsed); // "02/09/2026"
+    [day, month, year] = dateFormatted.split("/").map(Number);
+  }
+
+  const dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  const weekdayName = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: CHAMPIONSHIP_TIMEZONE,
+    weekday: "long",
+  }).format(dateObj);
+
+  const capitalized = weekdayName.charAt(0).toUpperCase() + weekdayName.slice(1);
+  return `${capitalized} (${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year})`;
+}
+
 export function formatTime(value: string | null | undefined): string {
   const parsed = parse(value);
   return parsed === null ? "-" : timeFormatter.format(parsed);

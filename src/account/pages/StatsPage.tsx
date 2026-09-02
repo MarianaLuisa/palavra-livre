@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getErrorMessage } from "../../championship/errors";
 import { formatDate, formatDuration, formatScore } from "../../championship/format";
+import { getBrazilCurrentDate } from "../../championship/timezone";
 import { formatWeekdayFullName } from "../../championship/weeklyChampionshipDomain";
 import { buildWeeklyChampionshipGroups } from "../championshipHistoryGrouping";
 import { MODE_LABEL_PT, MONTH_NAMES } from "../config";
@@ -17,14 +18,14 @@ const PERIOD_LABEL: Record<PeriodId, string> = {
 };
 
 function monthStartOf(date?: string | null, delta = 0): string {
-  const safe = typeof date === "string" && date.length >= 7 ? date : new Date().toISOString().slice(0, 10);
+  const safe = typeof date === "string" && date.length >= 7 ? date : getBrazilCurrentDate();
   const value = new Date(`${safe.slice(0, 8)}01T12:00:00Z`);
   value.setUTCMonth(value.getUTCMonth() + delta);
   return value.toISOString().slice(0, 10);
 }
 
 function monthEndOf(monthStart?: string | null): string {
-  const safe = typeof monthStart === "string" && monthStart.length >= 7 ? monthStart : new Date().toISOString().slice(0, 10);
+  const safe = typeof monthStart === "string" && monthStart.length >= 7 ? monthStart : getBrazilCurrentDate();
   const value = new Date(`${safe}T12:00:00Z`);
   value.setUTCMonth(value.getUTCMonth() + 1);
   value.setUTCDate(0);
@@ -32,7 +33,7 @@ function monthEndOf(monthStart?: string | null): string {
 }
 
 function resolvePeriod(period: PeriodId, today?: string | null): { from: string | null; to: string | null } {
-  const safeToday = typeof today === "string" && today.length >= 10 ? today : new Date().toISOString().slice(0, 10);
+  const safeToday = typeof today === "string" && today.length >= 10 ? today : getBrazilCurrentDate();
   switch (period) {
     case "THIS_MONTH":
       return { from: monthStartOf(safeToday), to: monthEndOf(monthStartOf(safeToday)) };
@@ -129,7 +130,7 @@ export function StatsPage() {
           setError(null);
         } else {
           // Fallback seguro se não houver dados ainda
-          const todayIso = new Date().toISOString().slice(0, 10);
+          const todayIso = getBrazilCurrentDate();
           setData({
             today: todayIso,
             memberSince: new Date().toISOString(),
