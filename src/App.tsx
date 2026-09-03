@@ -92,19 +92,27 @@ function AppRoutes({
       <RecoverPasswordPage />
     ) : pathname === normalizePath(ACCOUNT_ROUTES.progress) ? (
       <ProtectedRoute>
-        <ProgressPage />
+        <ChampionshipErrorBoundary>
+          <ProgressPage />
+        </ChampionshipErrorBoundary>
       </ProtectedRoute>
     ) : pathname === normalizePath(ACCOUNT_ROUTES.stats) ? (
       <ProtectedRoute>
-        <StatsPage />
+        <ChampionshipErrorBoundary>
+          <StatsPage />
+        </ChampionshipErrorBoundary>
       </ProtectedRoute>
     ) : pathname === normalizePath(ACCOUNT_ROUTES.profile) ? (
       <ProtectedRoute>
-        <ProfilePage />
+        <ChampionshipErrorBoundary>
+          <ProfilePage />
+        </ChampionshipErrorBoundary>
       </ProtectedRoute>
     ) : pathname === normalizePath(ACCOUNT_ROUTES.championshipHistory) ? (
       <ProtectedRoute>
-        <ChampionshipHistoryPage />
+        <ChampionshipErrorBoundary>
+          <ChampionshipHistoryPage />
+        </ChampionshipErrorBoundary>
       </ProtectedRoute>
     ) : (
       <NotFoundPage />

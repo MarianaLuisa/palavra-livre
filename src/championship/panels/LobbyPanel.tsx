@@ -58,7 +58,11 @@ export function LobbyPanel({
         </div>
         <div>
           <dt>Inscrições fecham</dt>
-          <dd>{formatTime(championship.registrationClosesAt)}</dd>
+          <dd>
+            {formatTime(championship.registrationClosesAt) === "00:00"
+              ? "23:59"
+              : formatTime(championship.registrationClosesAt)}
+          </dd>
         </div>
       </dl>
 

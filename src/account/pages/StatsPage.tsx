@@ -87,6 +87,8 @@ export function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const weeklyGroups = useMemo(() => buildWeeklyChampionshipGroups(history), [history]);
+
   const load = useCallback(
     async (targetPeriod: PeriodId) => {
       setLoading(true);
@@ -217,7 +219,33 @@ export function StatsPage() {
     );
   }
 
-  const stats: AggregateStats = data.stats;
+  const stats: AggregateStats = data.stats ?? {
+    from: null,
+    to: null,
+    games: 0,
+    completedGames: 0,
+    incompleteGames: 0,
+    completionRate: 0,
+    wordsSolved: 0,
+    wordsTotal: 0,
+    attempts: 0,
+    averageAttempts: 0,
+    durationMs: 0,
+    averageDurationMs: 0,
+    activeDays: 0,
+    byMode: [],
+    championship: {
+      played: 0,
+      wins: 0,
+      podiums: 0,
+      bestPosition: null,
+      bestScore: 0,
+      averageScore: 0,
+      wordsSolved: 0,
+      attempts: 0,
+      durationMs: 0,
+    },
+  };
   const championship = stats?.championship ?? {
     played: 0,
     wins: 0,
@@ -229,7 +257,6 @@ export function StatsPage() {
     attempts: 0,
     durationMs: 0,
   };
-  const weeklyGroups = useMemo(() => buildWeeklyChampionshipGroups(history), [history]);
 
   const ALL_MODES: Array<"SIMPLE" | "DUET" | "QUARTET" | "SEXTET"> = [
     "SIMPLE",
@@ -317,7 +344,7 @@ export function StatsPage() {
           </div>
           <div>
             <dt>Maior sequência</dt>
-            <dd>{data.streak.longest}</dd>
+            <dd>{data.streak?.longest ?? 0}</dd>
           </div>
           {stats.averageDurationMs > 0 ? (
             <div>

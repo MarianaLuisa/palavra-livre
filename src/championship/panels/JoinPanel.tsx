@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { CHAMPIONSHIP_BRAND, CHAMPIONSHIP_STATUS_LABEL } from "../config";
 import { formatDate, formatTime } from "../format";
+import { getBrazilCurrentDate } from "../timezone";
 import type { ChampionshipSummary } from "../types";
 
 type JoinPanelProps = {
@@ -26,12 +27,30 @@ export function JoinPanel({
 }: JoinPanelProps) {
   const [displayName, setDisplayName] = useState(accountUsername ?? suggestedName);
   const usesAccountName = accountUsername !== null && accountUsername.length >= 2;
-  const serverTime = Date.parse(serverNow);
-  const registrationClosesAt = Date.parse(championship.registrationClosesAt);
-  const canJoinToday =
-    championship.status === "IN_PROGRESS" && serverTime < registrationClosesAt;
+  const serverTime = Number.isNaN(Date.parse(serverNow)) ? Date.now() : Date.parse(serverNow);
+  let registrationClosesAt = Number.isNaN(Date.parse(championship.registrationClosesAt))
+    ? Number.MAX_SAFE_INTEGER
+    : Date.parse(championship.registrationClosesAt);
+
+  const todayDate = getBrazilCurrentDate(serverTime);
+  const isToday = championship.championshipDate === todayDate;
+
+  // Se a data de fechamento no banco foi configurada como início do dia (00:00)
+  // em vez de fim do dia, ajusta defensivamente para 23:59:59 do dia de hoje.
+  const todayStart = Date.parse(`${todayDate}T00:00:00-03:00`);
+  const todayEnd = Date.parse(`${todayDate}T23:59:59-03:00`);
+  if (isToday && registrationClosesAt <= todayStart + 60_000) {
+    registrationClosesAt = todayEnd;
+  }
+
+  const isFinished = championship.status === "FINISHED" || championship.status === "CANCELLED";
+  const isPastCloses = serverTime > registrationClosesAt;
+  const canJoinToday = !isFinished && !isPastCloses && (championship.status === "IN_PROGRESS" || isToday);
   const trimmedName = displayName.trim();
   const nameIsValid = trimmedName.length >= 2 && trimmedName.length <= 24;
+
+  const rawClosesTime = formatTime(championship.registrationClosesAt);
+  const closesTimeFormatted = rawClosesTime === "00:00" ? "23:59" : rawClosesTime;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -47,7 +66,7 @@ export function JoinPanel({
         <h1 id="join-title">{CHAMPIONSHIP_BRAND.name}</h1>
         <p className="panel-subtitle">
           Rodada diária de {formatDate(championship.championshipDate)} · disponível até{" "}
-          {formatTime(championship.registrationClosesAt)}
+          {closesTimeFormatted}
         </p>
         <span className={`status-chip status-${championship.status.toLowerCase()}`}>
           {CHAMPIONSHIP_STATUS_LABEL[championship.status] ?? championship.status}
@@ -101,7 +120,7 @@ export function JoinPanel({
         </form>
       ) : (
         <div className="panel-notice">
-          {championship.status === "FINISHED" || serverTime >= registrationClosesAt ? (
+          {isFinished || isPastCloses ? (
             <p>A rodada diária de hoje já foi encerrada. O resultado do dia será publicado aqui.</p>
           ) : (
             <p>
@@ -113,7 +132,7 @@ export function JoinPanel({
       )}
 
       <p className="panel-footnote">
-        {championship.participantCount} {CHAMPIONSHIP_BRAND.participantLabelPlural} participando hoje.
+        {championship.participantCount ?? 0} {CHAMPIONSHIP_BRAND.participantLabelPlural} participando hoje.
       </p>
     </section>
   );

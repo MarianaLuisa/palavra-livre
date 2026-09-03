@@ -1934,7 +1934,7 @@ function getSaoPauloDayStart(dateIso: string): number {
 }
 
 function getSaoPauloDayEnd(dateIso: string): number {
-  return getSaoPauloDayStart(addDaysIso(dateIso, 1));
+  return Date.parse(`${dateIso}T23:59:59-03:00`);
 }
 
 function isDailyOpenAllDay(championship: EngineChampionship): boolean {
