@@ -95,6 +95,7 @@ export function normalizeChampionshipState(raw: unknown): ChampionshipState {
 
   return {
     ...payload,
+    now: (firstDefined(payload.now, payload.serverNow, payload.timestamp, new Date().toISOString()) as string),
     rounds: rounds.map((value) => {
       const round = record(value);
       const participation = record(firstDefined(round.participation, round.participantRound, round.participant_round));

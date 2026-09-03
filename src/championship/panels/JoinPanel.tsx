@@ -79,7 +79,6 @@ export function JoinPanel({
         <li>13 palavras no total. Cada palavra descoberta vale 100 pontos.</li>
         <li>Concluir todas as palavras de uma modalidade rende 10 pontos por tentativa restante.</li>
         <li>Você pode jogar a qualquer hora do dia, uma vez por rodada diária.</li>
-        <li>O resultado do dia sai no fim do dia; o placar geral fecha no fim da semana.</li>
       </ul>
 
       {canJoinToday ? (
